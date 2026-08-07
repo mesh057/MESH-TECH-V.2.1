@@ -10,6 +10,7 @@ const {
   makeCacheableSignalKeyStore,
   fetchLatestBaileysVersion,
   Browsers,
+  DisconnectReason,
 } = require('@whiskeysockets/baileys');
 const {
   registerPairingSession,
@@ -38,7 +39,12 @@ function isValidNumber(number) {
 }
 
 function getStatusCode(error) {
-  return error?.output?.statusCode || error?.statusCode || error?.data?.statusCode || 500;
+  return (
+    error?.output?.statusCode ||
+    error?.statusCode ||
+    error?.data?.statusCode ||
+    500
+  );
 }
 
 async function getVersion() {
@@ -102,6 +108,9 @@ router.get('/', async (req, res) => {
     const logger = pino({ level: 'silent' });
     const version = await getVersion();
 
+    // FIX 1: Use a specific browser string that WhatsApp accepts reliably.
+    // Browsers.ubuntu('Chrome') can produce a fingerprint that WhatsApp rejects
+    // with "Couldn't link device". Using an explicit array is more stable.
     socket = makeWASocket({
       auth: {
         creds: state.creds,
@@ -109,53 +118,72 @@ router.get('/', async (req, res) => {
       },
       logger,
       ...(version ? { version } : {}),
-      browser: Browsers.ubuntu('Chrome'),
+      browser: ['Ubuntu', 'Chrome', '22.0.0'],
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      connectTimeoutMs: 30000,
+      connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
-      retryRequestDelayMs: 100,
+      retryRequestDelayMs: 250,
       printQRInTerminal: false,
+      // FIX 2: Disable QR generation entirely for pairing-code flow.
+      // If QR is generated alongside a pairing code request, WhatsApp can
+      // reject the pairing code because the session is in an ambiguous state.
+      generateHighQualityLinkPreview: false,
     });
 
     socket.ev.on('creds.update', saveCreds);
+
+    // FIX 3: Request the pairing code OUTSIDE the connection.update event,
+    // immediately after the socket is created, with a sufficient delay to
+    // allow the WebSocket handshake to complete. Requesting it inside the
+    // 'connecting' event fires too early — before the WS is fully open —
+    // which causes a 428 "Connection Closed" / "Couldn't link device" error.
+    if (!state.creds.registered && !codeRequested) {
+      codeRequested = true;
+      updatePairingSession(id, { state: 'requesting_code' });
+
+      // FIX 4: Increase delay to 5 seconds (from 1 second). The socket needs
+      // enough time to complete the WhatsApp Web handshake before the pairing
+      // code can be requested. 1 second is too short on slower connections or
+      // cloud deployments; 5 seconds is the community-verified safe minimum.
+      await delay(5000);
+
+      try {
+        if (!socket?.requestPairingCode) {
+          throw new Error('Socket is not ready or requestPairingCode is unavailable.');
+        }
+        const pairingCode = await socket.requestPairingCode(number);
+        if (!pairingCode || typeof pairingCode !== 'string') {
+          throw new Error(
+            `Invalid pairing code received: ${pairingCode}. WhatsApp may have rejected the request.`,
+          );
+        }
+        const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
+        updatePairingSession(id, { state: 'code_ready', code: formattedCode });
+
+        if (!res.headersSent) {
+          res.json({
+            code: formattedCode,
+            requestId: id,
+            expiresIn: Math.floor(PAIRING_TIMEOUT_MS / 1000),
+          });
+        }
+      } catch (pairingError) {
+        console.error('[PAIRING] requestPairingCode error:', pairingError.message);
+        const errorMsg = pairingError.message || 'Unknown pairing error';
+        updatePairingSession(id, { state: 'failed', error: errorMsg });
+        cleanup();
+        sendError(
+          502,
+          `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`,
+        );
+      }
+    }
 
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
       try {
         if (connection === 'connecting') {
           updatePairingSession(id, { state: 'connecting' });
-        }
-
-        if (!state.creds.registered && !codeRequested) {
-          codeRequested = true;
-          updatePairingSession(id, { state: 'requesting_code' });
-          await delay(1000);
-
-          try {
-            if (!socket?.requestPairingCode) {
-              throw new Error('Socket is not ready or requestPairingCode is unavailable.');
-            }
-            const pairingCode = await socket.requestPairingCode(number);
-            if (!pairingCode || typeof pairingCode !== 'string') {
-              throw new Error(`Invalid pairing code received: ${pairingCode}. WhatsApp may have rejected the request.`);
-            }
-            const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
-            updatePairingSession(id, { state: 'code_ready', code: formattedCode });
-
-            if (!res.headersSent) {
-              res.json({
-                code: formattedCode,
-                requestId: id,
-                expiresIn: Math.floor(PAIRING_TIMEOUT_MS / 1000),
-              });
-            }
-          } catch (pairingError) {
-            console.error('[PAIRING] requestPairingCode error:', pairingError.message);
-            const errorMsg = pairingError.message || 'Unknown pairing error';
-            updatePairingSession(id, { state: 'failed', error: errorMsg });
-            cleanup();
-            sendError(502, `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`);
-          }
         }
 
         if (connection === 'open') {
@@ -202,10 +230,20 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
 
         if (connection === 'close') {
           const statusCode = getStatusCode(lastDisconnect?.error);
+          // 401 = logged out / rejected; 403 = forbidden; 428 = precondition (too early)
           const isRejected = statusCode === 401 || statusCode === 403;
-          const message = isRejected
-            ? 'WhatsApp rejected the pairing request or the temporary session expired. Please try again.'
-            : 'Connection closed before pairing completed. Please try again.';
+          const isPrecondition = statusCode === 428;
+
+          let message;
+          if (isRejected) {
+            message =
+              'WhatsApp rejected the pairing request or the temporary session expired. Please try again.';
+          } else if (isPrecondition) {
+            message =
+              'Connection was not fully established before the pairing code was requested. Please try again.';
+          } else {
+            message = 'Connection closed before pairing completed. Please try again.';
+          }
 
           updatePairingSession(id, { state: 'failed', error: message });
           cleanup();

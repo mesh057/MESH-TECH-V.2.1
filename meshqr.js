@@ -10,6 +10,7 @@ const {
   Browsers,
   delay,
   fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
 } = require('@whiskeysockets/baileys');
 const {
   registerPairingSession,
@@ -77,15 +78,22 @@ router.get('/', async (req, res) => {
     const version = await getVersion();
     const logger = pino({ level: 'silent' });
 
+    // FIX: Use the same stable browser fingerprint as meshpair.js.
+    // Browsers.macOS('Desktop') can produce a fingerprint that WhatsApp
+    // rejects, causing "Couldn't link device" when scanning the QR code.
     socket = makeWASocket({
-      auth: state,
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger),
+      },
       ...(version ? { version } : {}),
       printQRInTerminal: false,
       logger,
-      browser: Browsers.macOS('Desktop'),
-      connectTimeoutMs: 30000,
+      browser: ['Ubuntu', 'Chrome', '22.0.0'],
+      connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
       syncFullHistory: false,
+      generateHighQualityLinkPreview: false,
     });
 
     socket.ev.on('creds.update', saveCreds);
@@ -158,10 +166,13 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
         }
 
         if (connection === 'close') {
-          const statusCode = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode;
-          const message = statusCode === 401 || statusCode === 403
-            ? 'WhatsApp rejected the QR session or it expired. Please generate a new QR code.'
-            : 'The QR connection closed before completion. Please try again.';
+          const statusCode =
+            lastDisconnect?.error?.output?.statusCode ||
+            lastDisconnect?.error?.statusCode;
+          const message =
+            statusCode === 401 || statusCode === 403
+              ? 'WhatsApp rejected the QR session or it expired. Please generate a new QR code.'
+              : 'The QR connection closed before completion. Please try again.';
           updatePairingSession(id, { state: 'failed', error: message });
           cleanup();
           if (!responseSent) sendError(statusCode === 401 || statusCode === 403 ? 400 : 502, message);

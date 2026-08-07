@@ -191,7 +191,10 @@ async function startBot() {
     const socketOptions = {
       auth: state,
       logger: pino({ level: 'silent' }),
-      browser: Browsers.macOS('Chrome'),
+      // FIX: Use a stable browser fingerprint. Browsers.macOS('Chrome') can
+      // cause WhatsApp to reject the session with "Couldn't link device".
+      // An explicit Ubuntu/Chrome string is the community-verified stable option.
+      browser: ['Ubuntu', 'Chrome', '22.0.0'],
       markOnlineOnConnect: true,
       keepAliveIntervalMs: 30000,
       connectTimeoutMs: 60000,

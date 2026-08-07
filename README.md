@@ -313,6 +313,8 @@ MESH-TECH-V2/
 | Database error | Check `DATABASE_URL` or use SQLite |
 | Bot not responding | Check logs: `pm2 logs mesh-tech-v2` |
 | QR not showing | Open the dashboard’s QR workflow, use the browser scanner, or check the `/qr` endpoint response |
+| **"Couldn’t link device"** | Fixed in v2.1 — caused by an incompatible browser fingerprint (`macOS/Chrome`) and insufficient handshake delay. Update to the latest code and regenerate your pairing code. |
+| Pairing code rejected | Ensure you enter the code within 2 minutes of generating it. Use a dedicated WhatsApp number for the bot. |
 
 ---
 
