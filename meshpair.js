@@ -109,12 +109,13 @@ router.get('/', async (req, res) => {
       },
       logger,
       ...(version ? { version } : {}),
-      browser: Browsers.macOS('Desktop'),
+      browser: Browsers.ubuntu('Chrome'),
       markOnlineOnConnect: false,
       syncFullHistory: false,
       connectTimeoutMs: 30000,
       keepAliveIntervalMs: 25000,
       retryRequestDelayMs: 100,
+      printQRInTerminal: false,
     });
 
     socket.ev.on('creds.update', saveCreds);
@@ -128,12 +129,15 @@ router.get('/', async (req, res) => {
         if (!state.creds.registered && !codeRequested) {
           codeRequested = true;
           updatePairingSession(id, { state: 'requesting_code' });
-          await delay(600);
+          await delay(1000);
 
           try {
+            if (!socket?.requestPairingCode) {
+              throw new Error('Socket is not ready or requestPairingCode is unavailable.');
+            }
             const pairingCode = await socket.requestPairingCode(number);
-            if (!pairingCode) {
-              throw new Error('Pairing code is empty; WhatsApp may have rejected the request.');
+            if (!pairingCode || typeof pairingCode !== 'string') {
+              throw new Error(`Invalid pairing code received: ${pairingCode}. WhatsApp may have rejected the request.`);
             }
             const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
             updatePairingSession(id, { state: 'code_ready', code: formattedCode });
@@ -150,7 +154,7 @@ router.get('/', async (req, res) => {
             const errorMsg = pairingError.message || 'Unknown pairing error';
             updatePairingSession(id, { state: 'failed', error: errorMsg });
             cleanup();
-            sendError(502, `WhatsApp pairing failed: ${errorMsg}. Verify the phone number is correct and try again.`);
+            sendError(502, `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`);
           }
         }
 
