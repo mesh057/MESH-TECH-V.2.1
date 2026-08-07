@@ -6,7 +6,7 @@
 
 ### *A Powerful Multi-Device WhatsApp Bot*
 
-[![Version](https://img.shields.io/badge/Version-2.0.0-blue.svg)](https://github.com/mesh057/MESH-TECH-V2)
+[![Version](https://img.shields.io/badge/Version-2.0.0-blue.svg)](https://github.com/mesh057/MESH-TECH-V.2.1)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 
@@ -21,6 +21,8 @@
 ## ✨ Features
 
 - 🔗 **Multi-Device Support** — Works with WhatsApp Web & Mobile simultaneously
+- 🛰️ **Pairing Control Center** — Futuristic dashboard with live bot, session, and pairing counters
+- 📷 **Browser QR Scanner** — Scan from a camera or image locally in the browser
 - 🗄️ **Dual Database** — PostgreSQL for production, SQLite for local/dev
 - ⚡ **Auto Status** — Auto-view and auto-react to status updates
 - 🛡️ **Group Management** — Kick, add, promote, demote, mute, antilink, welcome/goodbye
@@ -53,8 +55,8 @@
 ### 1️⃣ Fork & Clone
 
 ```bash
-git clone https://github.com/mesh057/MESH-TECH-V2.git
-cd MESH-TECH-V2
+git clone https://github.com/mesh057/MESH-TECH-V.2.1.git
+cd MESH-TECH-V.2.1
 ```
 
 ### 2️⃣ Install Dependencies
@@ -84,11 +86,12 @@ PREFIX=!.
 ### 4️⃣ Get Your Session ID
 
 1. Start your bot: `npm start`
-2. Visit the built-in session generator at your server URL (e.g., `http://localhost:3000`)
-3. Choose **Pairing Code** or **QR Code**
-4. Follow the instructions to link your WhatsApp
-5. Copy the session ID starting with `Mesh~`
-6. Paste it into your `.env` file and restart the bot
+2. Visit the futuristic pairing dashboard at your server URL (for example, `http://localhost:3000`)
+3. Choose **Pairing Code** or open the **QR workflow**
+4. Use the built-in browser scanner for a camera or saved QR image when needed
+5. Follow the WhatsApp instructions to link your device
+6. Copy the session ID starting with `Mesh~`
+7. Paste it into your `.env` file and restart the bot
 
 ### 5️⃣ Run the Bot
 
@@ -102,7 +105,7 @@ npm start
 
 ### ☁️ Heroku (Recommended)
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/mesh057/MESH-TECH-V2)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/mesh057/MESH-TECH-V.2.1)
 
 - PostgreSQL is **auto-provisioned**
 - Just add your `SESSION_ID`
@@ -112,8 +115,11 @@ npm start
 1. Fork this repo
 2. Go to [render.com](https://render.com) → New → Blueprint
 3. Connect your forked repo
-4. Render auto-provisions a free PostgreSQL database
-5. Add `SESSION_ID` — done!
+4. Render provisions the PostgreSQL database from `render.yaml`
+5. Add `SESSION_ID` as a secret — the free tier has an ephemeral local filesystem, so do not rely on local `auth_info` files for persistence
+6. Deploy and open the generated dashboard URL
+
+> **Production note:** Render’s free web services cannot attach persistent disks. The bot is designed to rebuild its auth state from the `Mesh~` session secret on restart. Use a paid Render service with a persistent disk if you need local auth files to survive independently of the session secret.
 
 ### 🚂 Railway
 
@@ -137,8 +143,8 @@ npm start
 # Ubuntu/Debian
 sudo apt update && sudo apt install -y nodejs npm ffmpeg git
 
-git clone https://github.com/mesh057/MESH-TECH-V2.git
-cd MESH-TECH-V2
+git clone https://github.com/mesh057/MESH-TECH-V.2.1.git
+cd MESH-TECH-V.2.1
 npm install
 
 # Create .env file
@@ -160,6 +166,7 @@ MESH-TECH-V2/
 ├── 📄 index.js                 # Main entry point (Bot + Session Gen)
 ├── 📄 meshqr.js                # QR Code session generator
 ├── 📄 meshpair.js              # Pairing code session generator
+├── 📂 public/                   # Dashboard CSS, browser logic, and local QR decoder
 ├── 📄 id.js                    # ID generator utility
 ├── 📄 meshpage.html            # Session gen home page
 ├── 📄 pair.html                # Pairing code page
@@ -234,7 +241,8 @@ MESH-TECH-V2/
 ├── 📂 assets/                  # Images, logos, banners
 ├── 📂 auth_info/               # WhatsApp session data
 ├── 📂 tmp/                     # Temporary files
-├── 📄 README.md                # Full documentation
+├── 📂 src/runtime/              # Runtime bot/session status tracking
+├── 📄 README.md                 # Full documentation
 └── 📄 LICENSE                  # MIT License
 ```
 
@@ -272,7 +280,7 @@ MESH-TECH-V2/
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SESSION_ID` | ✅ | — | WhatsApp session (starts with `Mesh~`) |
+| `SESSION_ID` | ✅ | — | WhatsApp session (starts with `Mesh~`; required for reliable Render restarts) |
 | `MODE` | ✅ | `public` | `public` / `private` / `self` |
 | `OWNER_NUMBER` | ✅ | `254746844168` | Your WhatsApp number |
 | `TIME_ZONE` | ❌ | `Africa/Nairobi` | Your timezone |
@@ -304,7 +312,7 @@ MESH-TECH-V2/
 | FFmpeg not found | Install FFmpeg: `sudo apt install ffmpeg` |
 | Database error | Check `DATABASE_URL` or use SQLite |
 | Bot not responding | Check logs: `pm2 logs mesh-tech-v2` |
-| QR not showing | Resize terminal or use `qrcode-terminal` |
+| QR not showing | Open the dashboard’s QR workflow, use the browser scanner, or check the `/qr` endpoint response |
 
 ---
 

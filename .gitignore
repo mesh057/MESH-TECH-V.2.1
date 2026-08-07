@@ -1,1 +1,15 @@
-node_modules\nauth_info\ntemp\n.env
+node_modules/
+.env
+.env.*
+!.env.example
+database.sqlite
+database.sqlite-shm
+database.sqlite-wal
+auth_info/*
+!auth_info/.gitkeep
+temp/*
+!temp/.gitkeep
+tmp/*
+!tmp/.gitkeep
+npm-debug.log*
+.DS_Store

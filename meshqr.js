@@ -1,109 +1,184 @@
-const QRCode = require('qrcode');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const QRCode = require('qrcode');
 const { makeid } = require('./id');
-const pino = require("pino");
-
+const pino = require('pino');
 const {
-  default: Mesh_Tech,
+  default: makeWASocket,
   useMultiFileAuthState,
   Browsers,
   delay,
-} = require("@whiskeysockets/baileys");
+  fetchLatestBaileysVersion,
+} = require('@whiskeysockets/baileys');
+const {
+  registerPairingSession,
+  updatePairingSession,
+  removePairingSession,
+} = require('./src/runtime/status');
 
-let router = express.Router();
+const router = express.Router();
+const QR_TIMEOUT_MS = 120000;
 
-function removeFile(FilePath) {
-  if (!fs.existsSync(FilePath)) return false;
-  fs.rmSync(FilePath, { recursive: true, force: true });
+function removeFile(filePath) {
+  try {
+    if (fs.existsSync(filePath)) fs.rmSync(filePath, { recursive: true, force: true });
+  } catch (error) {
+    console.error('[QR] Temporary session cleanup failed:', error.message);
+  }
+}
+
+async function getVersion() {
+  try {
+    const result = await fetchLatestBaileysVersion();
+    return result?.version;
+  } catch (error) {
+    console.warn('[QR] Could not fetch latest WhatsApp Web version:', error.message);
+    return undefined;
+  }
 }
 
 router.get('/', async (req, res) => {
   const id = makeid();
+  const tempDir = path.join(__dirname, 'temp', id);
+  let socket;
+  let responseSent = false;
+  let cleaned = false;
+  let timeout;
 
-  async function MESH_TECH_QR() {
-    const tempDir = path.join(__dirname, 'temp', id);
-    const { state, saveCreds } = await useMultiFileAuthState(tempDir);
+  registerPairingSession(id, { type: 'qr', state: 'starting' });
 
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    clearTimeout(timeout);
+    removePairingSession(id);
+    removeFile(tempDir);
+  };
+
+  const sendError = (status, message) => {
+    if (!res.headersSent) res.status(status).json({ error: message, requestId: id });
+  };
+
+  timeout = setTimeout(() => {
+    updatePairingSession(id, { state: 'failed', error: 'QR request timed out' });
+    sendError(504, 'QR request timed out. Please generate a new QR code.');
     try {
-      let Mesh_QR = Mesh_Tech({
-        auth: state,
-        printQRInTerminal: false,
-        logger: pino({ level: "silent" }),
-        browser: Browsers.macOS('Desktop'),
-      });
+      socket?.end?.(undefined);
+    } catch (error) {
+      console.error('[QR] Timed-out socket close failed:', error.message);
+    }
+    cleanup();
+  }, QR_TIMEOUT_MS);
 
-      Mesh_QR.ev.on('creds.update', saveCreds);
+  try {
+    await fs.promises.mkdir(path.dirname(tempDir), { recursive: true });
+    const { state, saveCreds } = await useMultiFileAuthState(tempDir);
+    const version = await getVersion();
+    const logger = pino({ level: 'silent' });
 
-      Mesh_QR.ev.on("connection.update", async (s) => {
-        const { connection, lastDisconnect, qr } = s;
+    socket = makeWASocket({
+      auth: state,
+      ...(version ? { version } : {}),
+      printQRInTerminal: false,
+      logger,
+      browser: Browsers.macOS('Desktop'),
+      connectTimeoutMs: 30000,
+      keepAliveIntervalMs: 25000,
+      syncFullHistory: false,
+    });
 
-        if (qr) {
-          await res.end(await QRCode.toBuffer(qr));
+    socket.ev.on('creds.update', saveCreds);
+
+    socket.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+      try {
+        if (connection === 'connecting') {
+          updatePairingSession(id, { state: 'connecting' });
         }
 
-        if (connection == "open") {
-          await delay(5000);
-          let data = fs.readFileSync(path.join(tempDir, 'creds.json'));
-          await delay(800);
-          let b64data = Buffer.from(data).toString('base64');
-          let sessionId = 'Mesh~' + b64data;
-
-          let session = await Mesh_QR.sendMessage(Mesh_QR.user.id, {
-            text: sessionId
+        if (qr && !responseSent) {
+          updatePairingSession(id, { state: 'qr_ready' });
+          const image = await QRCode.toBuffer(qr, {
+            type: 'png',
+            width: 640,
+            margin: 2,
+            errorCorrectionLevel: 'M',
           });
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': String(image.length),
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            'X-QR-Request-Id': id,
+          });
+          responseSent = true;
+          res.end(image);
+        }
 
-          let MESH_TEXT = `
+        if (connection === 'open') {
+          updatePairingSession(id, { state: 'connected' });
+          await delay(1200);
+          const credsPath = path.join(tempDir, 'creds.json');
+
+          if (fs.existsSync(credsPath) && socket.user?.id) {
+            const sessionId = `Mesh~${fs.readFileSync(credsPath).toString('base64')}`;
+            try {
+              const sessionMessage = await socket.sendMessage(socket.user.id, { text: sessionId });
+              await socket.sendMessage(
+                socket.user.id,
+                {
+                  text: `
 ╔════════════════════════════════════════════╗
-║  ✅ *MESH-TECH-V2 SESSION CONNECTED*      ║
+║  ✅ MESH-TECH-V2 QR SESSION CONNECTED      ║
 ╚════════════════════════════════════════════╝
 
-🤖 *Bot Name:* MESH-TECH-V2
-👤 *Owner:* Mesh
-📱 *Number:* ${Mesh_QR.user.id.split(':')[0]}
-🔐 *Session ID:* Sent above (starts with Mesh~)
+Bot: MESH-TECH-V2
+Number: ${socket.user.id.split(':')[0]}
+Session ID: Sent above (starts with Mesh~)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 *NEXT STEPS:*
-1️⃣ Copy the Session ID above (the long text starting with Mesh~)
-2️⃣ Paste it in your bot's .env file as SESSION_ID
-3️⃣ Deploy your bot and enjoy!
+Next steps:
+1. Copy the Session ID above.
+2. Paste it in your bot's .env file as SESSION_ID.
+3. Deploy your bot and enjoy.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔗 *Links:*
-📢 Channel: https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R
-💬 Group: https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M
-📦 Repo: https://github.com/mesh057/MESH-TECH-V2
+Repository: https://github.com/mesh057/MESH-TECH-V.2.1
+                  `.trim(),
+                },
+                { quoted: sessionMessage },
+              );
+            } catch (messageError) {
+              console.error('[QR] Failed to send session ID:', messageError.message);
+            }
+          }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-_⭐ Don't forget to star the repo!_
-          `.trim();
-
-          await Mesh_QR.sendMessage(Mesh_QR.user.id, {
-            text: MESH_TEXT
-          }, { quoted: session });
-
-          await delay(100);
-          await Mesh_QR.ws.close();
-          return await removeFile(tempDir);
-
-        } else if (connection === "close" && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode != 401) {
-          await delay(10000);
-          MESH_TECH_QR();
+          updatePairingSession(id, { state: 'completed' });
+          await delay(500);
+          socket.end?.(undefined);
+          cleanup();
         }
-      });
 
-    } catch (err) {
-      if (!res.headersSent) {
-        await res.json({ code: "Service is Currently Unavailable" });
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode;
+          const message = statusCode === 401 || statusCode === 403
+            ? 'WhatsApp rejected the QR session or it expired. Please generate a new QR code.'
+            : 'The QR connection closed before completion. Please try again.';
+          updatePairingSession(id, { state: 'failed', error: message });
+          cleanup();
+          if (!responseSent) sendError(statusCode === 401 || statusCode === 403 ? 400 : 502, message);
+        }
+      } catch (error) {
+        console.error('[QR] Connection update failed:', error.message);
+        updatePairingSession(id, { state: 'failed', error: error.message });
+        cleanup();
+        sendError(502, 'A QR session error occurred. Please try again.');
       }
-      console.log(err);
-      await removeFile(tempDir);
-    }
+    });
+  } catch (error) {
+    console.error('[QR] Socket initialization failed:', error.message);
+    updatePairingSession(id, { state: 'failed', error: error.message });
+    cleanup();
+    sendError(502, 'QR service initialization failed. Please try again.');
   }
-
-  return await MESH_TECH_QR();
 });
 
 module.exports = router;

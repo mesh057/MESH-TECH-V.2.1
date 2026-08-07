@@ -1,4 +1,5 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+require('dotenv').config();
+
 const { Boom } = require('@hapi/boom');
 const pino = require('pino');
 const fs = require('fs-extra');
@@ -7,155 +8,144 @@ const figlet = require('figlet');
 const chalk = require('chalk');
 const express = require('express');
 const qrcode = require('qrcode-terminal');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const bodyParser = require('body-parser');
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason,
+  Browsers,
+} = require('@whiskeysockets/baileys');
+
 const qrServer = require('./meshqr.js');
 const pairServer = require('./meshpair.js');
-
 const config = require('./src/config/config');
 const { connectDatabase } = require('./src/database/connection');
 const commandHandler = require('./src/handlers/commandHandler');
 const eventHandler = require('./src/handlers/eventHandler');
 const { autoStatusView } = require('./src/features/autoStatus');
 const { autoLikeStatus } = require('./src/features/autoLikeStatus');
+const {
+  runtime,
+  touchBot,
+  getStatusSnapshot,
+} = require('./src/runtime/status');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+const PORT = Number(process.env.PORT) || 3000;
 
+app.disable('x-powered-by');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-// Session Generator Routes
 app.use('/qr', qrServer);
 app.use('/code', pairServer);
-app.use('/pair', (req, res) => {
+app.get('/pair', (req, res) => {
   res.sendFile(path.join(__dirname, 'pair.html'));
 });
-
-// Root route for Session Generator
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'meshpage.html'));
 });
 
-// Keep-alive/Status route
-app.get('/status', (req, res) => {
+app.get('/status', async (req, res) => {
+  const snapshot = await getStatusSnapshot();
+  res.set('Cache-Control', 'no-store');
   res.json({
-    status: 'MESH-TECH-V2 is running',
-    version: '2.0.0',
-    owner: 'Mesh',
-    channel: 'https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R',
-    group: 'https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M',
-    uptime: process.uptime()
+    ...snapshot,
+    version: config.VERSION,
+    owner: config.AUTHOR,
+    botName: config.BOT_NAME,
+    channel: config.CHANNEL_LINK,
+    group: config.GROUP_LINK,
+    github: 'https://github.com/mesh057/MESH-TECH-V.2.1',
   });
 });
 
-// System Status API for Real-Time Dashboard
 app.get('/api/system-status', async (req, res) => {
-  try {
-    let authCount = 0;
-    try {
-      const authFiles = await fs.readdir('./auth_info');
-      authCount = authFiles.filter(f => f !== '.gitkeep').length;
-    } catch (e) {}
-
-    let tempCount = 0;
-    try {
-      const tempFiles = await fs.readdir('./temp');
-      tempCount = tempFiles.filter(f => f !== '.gitkeep').length;
-    } catch (e) {}
-
-    const totalSessions = authCount + tempCount + 1;
-    const connectedBots = 1 + (authCount > 0 ? authCount : 0);
-
-    res.json({
-      connectedBots: connectedBots,
-      activeSessions: totalSessions,
-      uptime: Math.floor(process.uptime()),
-      status: 'ONLINE'
-    });
-  } catch (err) {
-    res.json({
-      connectedBots: 1,
-      activeSessions: 1,
-      uptime: Math.floor(process.uptime()),
-      status: 'ONLINE'
-    });
-  }
+  res.set('Cache-Control', 'no-store');
+  res.json(await getStatusSnapshot());
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const snapshot = await getStatusSnapshot();
+  res.status(200).json({
+    status: 'healthy',
+    botStatus: snapshot.status,
+    timestamp: new Date().toISOString(),
+  });
 });
 
-const http = require('http');
-const { WebSocketServer } = require('ws');
-
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
-
-async function getSystemStatusData() {
-  try {
-    let authCount = 0;
-    try {
-      const authFiles = await fs.readdir('./auth_info');
-      authCount = authFiles.filter(f => f !== '.gitkeep').length;
-    } catch (e) {}
-
-    let tempCount = 0;
-    try {
-      const tempFiles = await fs.readdir('./temp');
-      tempCount = tempFiles.filter(f => f !== '.gitkeep').length;
-    } catch (e) {}
-
-    const totalSessions = authCount + tempCount + 1;
-    const connectedBots = 1 + (authCount > 0 ? authCount : 0);
-
-    return {
-      connectedBots: connectedBots,
-      activeSessions: totalSessions,
-      uptime: Math.floor(process.uptime()),
-      status: 'ONLINE'
-    };
-  } catch (err) {
-    return {
-      connectedBots: 1,
-      activeSessions: 1,
-      uptime: Math.floor(process.uptime()),
-      status: 'ONLINE'
-    };
-  }
+function broadcastStatus(snapshot) {
+  const payload = JSON.stringify(snapshot);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) client.send(payload);
+  });
 }
 
 wss.on('connection', async (ws) => {
-  // Send immediate status on connect
-  const initialStatus = await getSystemStatusData();
-  ws.send(JSON.stringify(initialStatus));
-
-  ws.on('error', (err) => {});
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+  ws.on('error', () => {});
+  ws.send(JSON.stringify(await getStatusSnapshot()));
 });
 
-// Broadcast status update to all connected WebSocket clients every 3 seconds
-setInterval(async () => {
-  const statusData = await getSystemStatusData();
-  const payload = JSON.stringify(statusData);
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // OPEN
-      client.send(payload);
-    }
-  });
+const statusInterval = setInterval(async () => {
+  broadcastStatus(await getStatusSnapshot());
 }, 3000);
 
-server.listen(PORT, () => {
-  console.log(chalk.green(`[SERVER] Keep-alive & WebSocket server running on port ${PORT}`));
-});
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
 
-/**
- * Handle session ID from environment variable.
- * If SESSION_ID starts with "Mesh~", it is base64-encoded creds.json.
- * We decode it and write to auth_info/creds.json before starting Baileys.
- */
+statusInterval.unref?.();
+heartbeatInterval.unref?.();
+
+let botSocket = null;
+let reconnectTimer = null;
+let startInFlight = false;
+let databaseReady = false;
+let shuttingDown = false;
+
+function getDisconnectCode(error) {
+  return error?.output?.statusCode || error?.statusCode || error?.data?.statusCode || null;
+}
+
+function scheduleReconnect() {
+  if (shuttingDown || reconnectTimer) return;
+
+  runtime.bot.reconnects += 1;
+  touchBot({ state: 'reconnecting', error: null });
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    startBot();
+  }, 5000);
+}
+
+async function getBaileysVersion() {
+  try {
+    const result = await fetchLatestBaileysVersion();
+    return result?.version;
+  } catch (error) {
+    console.warn(chalk.yellow(`[BAILEYS] Could not fetch latest version: ${error.message}`));
+    return undefined;
+  }
+}
+
 async function handleSessionId() {
   const sessionId = config.SESSION_ID;
-  const authDir = './auth_info';
+  const authDir = path.join(__dirname, 'auth_info');
   const credsPath = path.join(authDir, 'creds.json');
 
   if (!sessionId) {
@@ -163,118 +153,163 @@ async function handleSessionId() {
     return;
   }
 
-  // Check if it's a Mesh~ prefixed session
-  if (sessionId.startsWith('Mesh~')) {
-    const base64Creds = sessionId.slice(5); // Remove "Mesh~" prefix
-    try {
-      const credsData = Buffer.from(base64Creds, 'base64').toString('utf-8');
-      const credsJson = JSON.parse(credsData);
-
-      await fs.ensureDir(authDir);
-      await fs.writeFile(credsPath, JSON.stringify(credsJson, null, 2));
-
-      console.log(chalk.green('[SESSION] Mesh~ session decoded and saved to auth_info/creds.json'));
-    } catch (error) {
-      console.error(chalk.red('[SESSION ERROR] Failed to decode Mesh~ session ID:'), error.message);
-      console.log(chalk.yellow('[SESSION] Awaiting QR scan instead...'));
-    }
-  } else {
+  if (!sessionId.startsWith('Mesh~')) {
     console.log(chalk.yellow('[SESSION] SESSION_ID does not start with Mesh~. Awaiting QR scan...'));
+    return;
+  }
+
+  try {
+    const base64Creds = sessionId.slice(5);
+    const credsJson = JSON.parse(Buffer.from(base64Creds, 'base64').toString('utf-8'));
+    await fs.ensureDir(authDir);
+    await fs.writeFile(credsPath, JSON.stringify(credsJson, null, 2));
+    console.log(chalk.green('[SESSION] Mesh~ session decoded and saved to auth_info/creds.json'));
+  } catch (error) {
+    console.error(chalk.red('[SESSION] Failed to decode Mesh~ session ID:'), error.message);
+    console.log(chalk.yellow('[SESSION] Continuing in QR mode...'));
   }
 }
 
 async function startBot() {
-  console.clear();
-  console.log(
-    chalk.cyan(
-      figlet.textSync('MESH-TECH', { horizontalLayout: 'full' })
-    )
-  );
-  console.log(chalk.yellow('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
-  console.log(chalk.cyan('  MESH-TECH-V2 | Multi-Device WhatsApp Bot'));
-  console.log(chalk.cyan('  Version: 2.0.0 | By: Mesh'));
-  console.log(chalk.yellow('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+  if (shuttingDown || startInFlight) return botSocket;
 
-  // Initialize database
-  await connectDatabase();
+  startInFlight = true;
+  const reconnecting = runtime.bot.reconnects > 0;
+  touchBot({ state: reconnecting ? 'reconnecting' : 'starting', error: null });
 
-  // Handle session ID before auth state
-  await handleSessionId();
-
-  const { state, saveCreds } = await useMultiFileAuthState('./auth_info');
-  const { version } = await fetchLatestBaileysVersion();
-
-  const sock = makeWASocket({
-    version,
-    logger: pino({ level: 'silent' }),
-    auth: state,
-    browser: ['MESH-TECH-V2', 'Chrome', '20.0.04'],
-    markOnlineOnConnect: true,
-    keepAliveIntervalMs: 30000,
-    defaultQueryTimeoutMs: undefined,
-    syncFullHistory: false
-  });
-
-  // Save credentials on update
-  sock.ev.on('creds.update', saveCreds);
-
-  // Connection handler
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      console.log(chalk.yellow('\n[QR] Scan this QR code with WhatsApp > Linked Devices:\n'));
-      qrcode.generate(qr, { small: true });
+  try {
+    if (!databaseReady) {
+      await connectDatabase();
+      databaseReady = true;
     }
 
-    if (connection === 'close') {
-      const shouldReconnect =
-        lastDisconnect?.error instanceof Boom &&
-        lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
+    await handleSessionId();
+    await fs.ensureDir(path.join(__dirname, 'auth_info'));
 
-      console.log(
-        chalk.red(
-          `[DISCONNECT] Connection closed. Reconnecting: ${shouldReconnect}`
-        )
-      );
+    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth_info'));
+    const version = await getBaileysVersion();
+    const socketOptions = {
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      browser: Browsers.macOS('Chrome'),
+      markOnlineOnConnect: true,
+      keepAliveIntervalMs: 30000,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: undefined,
+      syncFullHistory: false,
+    };
 
-      if (shouldReconnect) {
-        setTimeout(startBot, 5000);
-      } else {
-        console.log(chalk.red('[LOGOUT] Session ended. Delete auth_info folder to restart.'));
-        process.exit(0);
+    if (version) socketOptions.version = version;
+
+    const sock = makeWASocket(socketOptions);
+    botSocket = sock;
+    sock.ev.on('creds.update', saveCreds);
+
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        touchBot({ state: 'pairing', error: null });
+        console.log(chalk.yellow('\n[QR] Scan this QR code with WhatsApp > Linked Devices:\n'));
+        qrcode.generate(qr, { small: true });
       }
-    }
 
-    if (connection === 'open') {
-      console.log(chalk.green('[CONNECTED] MESH-TECH-V2 is now online!'));
-      console.log(chalk.cyan(`[INFO] Bot JID: ${sock.user.id}`));
-      console.log(chalk.cyan(`[INFO] Name: ${sock.user.name}`));
-      console.log(chalk.yellow('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+      if (connection === 'connecting') {
+        touchBot({ state: 'connecting', error: null });
+      }
 
-      // Auto features
-      if (config.AUTO_READ_STATUS === 'true') autoStatusView(sock);
-      if (config.AUTO_LIKE_STATUS === 'true') autoLikeStatus(sock);
-    }
-  });
+      if (connection === 'open') {
+        runtime.bot.reconnects = 0;
+        touchBot({
+          state: 'connected',
+          jid: sock.user?.id || null,
+          name: sock.user?.name || config.BOT_NAME,
+          error: null,
+        });
+        console.log(chalk.green('[CONNECTED] MESH-TECH-V2 is now online!'));
+        console.log(chalk.cyan(`[INFO] Bot JID: ${sock.user?.id || 'unknown'}`));
+        console.log(chalk.cyan(`[INFO] Name: ${sock.user?.name || config.BOT_NAME}`));
+        console.log(chalk.yellow('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
 
-  // Message handler
-  sock.ev.on('messages.upsert', async (m) => {
-    await commandHandler(sock, m);
-  });
+        if (config.AUTO_READ_STATUS === 'true') autoStatusView(sock);
+        if (config.AUTO_LIKE_STATUS === 'true') autoLikeStatus(sock);
+      }
 
-  // Group events
-  sock.ev.on('group-participants.update', async (update) => {
-    await eventHandler(sock, update);
-  });
+      if (connection === 'close') {
+        const disconnectCode = getDisconnectCode(lastDisconnect?.error);
+        botSocket = null;
 
-  // Presence update
-  sock.ev.on('presence.update', async (update) => {
-    // Handle presence updates if needed
+        if (disconnectCode === DisconnectReason.loggedOut) {
+          touchBot({ state: 'logged_out', error: 'WhatsApp session logged out' });
+          console.log(chalk.red('[LOGOUT] Session ended. Generate a new session to reconnect.'));
+          return;
+        }
+
+        touchBot({ state: 'reconnecting', error: null });
+        console.log(chalk.red(`[DISCONNECT] Connection closed. Reconnecting in 5 seconds.`));
+        scheduleReconnect();
+      }
+    });
+
+    sock.ev.on('messages.upsert', async (message) => {
+      try {
+        await commandHandler(sock, message);
+        touchBot({ error: null });
+      } catch (error) {
+        touchBot({ state: 'connected', error: error.message });
+        console.error(chalk.red('[MESSAGE] Handler error:'), error);
+      }
+    });
+
+    sock.ev.on('group-participants.update', async (update) => {
+      try {
+        await eventHandler(sock, update);
+      } catch (error) {
+        touchBot({ error: error.message });
+        console.error(chalk.red('[GROUP] Event handler error:'), error);
+      }
+    });
+
+    sock.ev.on('presence.update', () => {});
+    return sock;
+  } catch (error) {
+    botSocket = null;
+    touchBot({ state: 'error', error: error.message });
+    console.error(chalk.red('[BOT] Startup error:'), error);
+    scheduleReconnect();
+    return null;
+  } finally {
+    startInFlight = false;
+  }
+}
+
+function startHttpServer() {
+  server.listen(PORT, () => {
+    console.log(chalk.green(`[SERVER] Dashboard and status server listening on port ${PORT}`));
   });
 }
 
-startBot().catch((err) => {
-  console.error(chalk.red('[FATAL] Failed to start bot:'), err);
-  process.exit(1);
-});
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  clearTimeout(reconnectTimer);
+  clearInterval(statusInterval);
+  clearInterval(heartbeatInterval);
+  touchBot({ state: 'stopped', error: null });
+
+  try {
+    if (botSocket?.ws) botSocket.ws.close();
+  } catch (error) {
+    console.error('[SHUTDOWN] Socket close failed:', error.message);
+  }
+
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
+  console.log(`[SHUTDOWN] Received ${signal}. Closing services...`);
+}
+
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+
+startHttpServer();
+startBot();

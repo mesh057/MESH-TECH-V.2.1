@@ -3,16 +3,17 @@ services:
     name: mesh-tech-v2
     runtime: node
     plan: free
-    # repo: https://github.com/your-username/your-repo
-    # branch: main
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
-      - key: NODE_VERSION
-        value: 20
+      # Required on Render because free services have ephemeral local filesystems.
+      # Generate a Mesh~ session ID from the dashboard and add it as a secret.
       - key: SESSION_ID
         sync: false
+      - key: NODE_VERSION
+        value: 20
       - key: MODE
         value: public
       - key: OWNER_NUMBER
@@ -29,10 +30,6 @@ services:
           property: connectionString
       - key: PREFIX
         value: "!."
-    disk:
-      name: auth-storage
-      mountPath: /app/auth_info
-      sizeGB: 1
 
 databases:
   - name: mesh-tech-db

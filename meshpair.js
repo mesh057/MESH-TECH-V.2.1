@@ -11,16 +11,22 @@ const {
   fetchLatestBaileysVersion,
   Browsers,
 } = require('@whiskeysockets/baileys');
+const {
+  registerPairingSession,
+  updatePairingSession,
+  removePairingSession,
+} = require('./src/runtime/status');
 
 const router = express.Router();
 const TEMP_ROOT = path.join(__dirname, 'temp');
+const PAIRING_TIMEOUT_MS = 120000;
 
 function removeFile(filePath) {
   try {
-    if (fs.existsSync(filePath)) {
-      fs.rmSync(filePath, { recursive: true, force: true });
-    }
-  } catch (e) {}
+    if (fs.existsSync(filePath)) fs.rmSync(filePath, { recursive: true, force: true });
+  } catch (error) {
+    console.error('[PAIRING] Temporary session cleanup failed:', error.message);
+  }
 }
 
 function normalizeNumber(value) {
@@ -32,7 +38,17 @@ function isValidNumber(number) {
 }
 
 function getStatusCode(error) {
-  return error?.output?.statusCode || error?.statusCode || 500;
+  return error?.output?.statusCode || error?.statusCode || error?.data?.statusCode || 500;
+}
+
+async function getVersion() {
+  try {
+    const result = await fetchLatestBaileysVersion();
+    return result?.version;
+  } catch (error) {
+    console.warn('[PAIRING] Could not fetch latest WhatsApp Web version:', error.message);
+    return undefined;
+  }
 }
 
 router.get('/', async (req, res) => {
@@ -40,7 +56,7 @@ router.get('/', async (req, res) => {
 
   if (!isValidNumber(number)) {
     return res.status(400).json({
-      error: 'Invalid phone number. Use 10–15 digits including country code (e.g. 2547XXXXXXXX).',
+      error: 'Invalid phone number. Use 10–15 digits including country code (for example, 2547XXXXXXXX).',
     });
   }
 
@@ -49,24 +65,42 @@ router.get('/', async (req, res) => {
   let socket;
   let codeRequested = false;
   let cleaned = false;
+  let timeout;
+
+  registerPairingSession(id, {
+    type: 'pairing',
+    state: 'starting',
+    number,
+  });
 
   const cleanup = () => {
-    if (!cleaned) {
-      cleaned = true;
-      removeFile(authPath);
-    }
+    if (cleaned) return;
+    cleaned = true;
+    clearTimeout(timeout);
+    removePairingSession(id);
+    removeFile(authPath);
   };
 
   const sendError = (status, message) => {
-    if (!res.headersSent) {
-      res.status(status).json({ error: message });
-    }
+    if (!res.headersSent) res.status(status).json({ error: message });
   };
 
+  timeout = setTimeout(() => {
+    updatePairingSession(id, { state: 'failed', error: 'Pairing request timed out' });
+    sendError(504, 'Pairing request timed out. Please generate a new code and try again.');
+    try {
+      socket?.end?.(undefined);
+    } catch (error) {
+      console.error('[PAIRING] Timed-out socket close failed:', error.message);
+    }
+    cleanup();
+  }, PAIRING_TIMEOUT_MS);
+
   try {
+    await fs.promises.mkdir(TEMP_ROOT, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
     const logger = pino({ level: 'silent' });
-    const { version } = await fetchLatestBaileysVersion();
+    const version = await getVersion();
 
     socket = makeWASocket({
       auth: {
@@ -74,38 +108,51 @@ router.get('/', async (req, res) => {
         keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
       logger,
-      version,
+      ...(version ? { version } : {}),
       browser: Browsers.macOS('Chrome'),
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      connectTimeoutMs: 30_000,
-      keepAliveIntervalMs: 25_000,
+      connectTimeoutMs: 30000,
+      keepAliveIntervalMs: 25000,
     });
 
     socket.ev.on('creds.update', saveCreds);
 
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
       try {
-        // Request pairing code as soon as socket starts without waiting for QR event
+        if (connection === 'connecting') {
+          updatePairingSession(id, { state: 'connecting' });
+        }
+
         if (!state.creds.registered && !codeRequested) {
           codeRequested = true;
-          // Short delay for socket WS connection handshake
+          updatePairingSession(id, { state: 'requesting_code' });
           await delay(600);
+
           try {
             const pairingCode = await socket.requestPairingCode(number);
             const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
+            updatePairingSession(id, { state: 'code_ready' });
+
             if (!res.headersSent) {
-              res.json({ code: formattedCode });
+              res.json({
+                code: formattedCode,
+                requestId: id,
+                expiresIn: Math.floor(PAIRING_TIMEOUT_MS / 1000),
+              });
             }
-          } catch (pairErr) {
-            console.error('[PAIRING] requestPairingCode error:', pairErr.message);
+          } catch (pairingError) {
+            console.error('[PAIRING] requestPairingCode error:', pairingError.message);
+            updatePairingSession(id, { state: 'failed', error: pairingError.message });
             cleanup();
-            sendError(502, 'Failed to generate pairing code from WhatsApp. Please check number or try again.');
+            sendError(502, 'WhatsApp could not generate a pairing code. Check the number and try again.');
           }
         }
 
         if (connection === 'open') {
+          updatePairingSession(id, { state: 'connected' });
           await delay(1000);
+
           const credsPath = path.join(authPath, 'creds.json');
           if (fs.existsSync(credsPath)) {
             const sessionId = `Mesh~${fs.readFileSync(credsPath).toString('base64')}`;
@@ -116,26 +163,29 @@ router.get('/', async (req, res) => {
                 {
                   text: `
 ╔════════════════════════════════════════════╗
-║  ✅ *MESH-TECH-V2 PAIR CODE CONNECTED*      ║
+║  ✅ MESH-TECH-V2 PAIR CODE CONNECTED       ║
 ╚════════════════════════════════════════════╝
-🤖 *Bot Name:* MESH-TECH-V2
-📱 *Number:* ${socket.user.id.split(':')[0]}
-🔐 *Session ID:* Sent above (starts with Mesh~)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 *NEXT STEPS:*
-1️⃣ Copy the Session ID above
-2️⃣ Paste it in your bot's .env file as SESSION_ID
-3️⃣ Deploy your bot and enjoy!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔗 Repo: https://github.com/mesh057/MESH-TECH-V2
+
+Bot: MESH-TECH-V2
+Number: ${socket.user.id.split(':')[0]}
+Session ID: Sent above (starts with Mesh~)
+
+Next steps:
+1. Copy the Session ID above.
+2. Paste it in your bot's .env file as SESSION_ID.
+3. Deploy your bot and enjoy.
+
+Repository: https://github.com/mesh057/MESH-TECH-V.2.1
                   `.trim(),
                 },
-                { quoted: sessionMessage }
+                { quoted: sessionMessage },
               );
-            } catch (msgErr) {
-              console.error('[PAIRING] Failed to send session ID message to user:', msgErr.message);
+            } catch (messageError) {
+              console.error('[PAIRING] Failed to send session ID message:', messageError.message);
             }
           }
+
+          updatePairingSession(id, { state: 'completed' });
           await delay(500);
           socket.end?.(undefined);
           cleanup();
@@ -143,23 +193,27 @@ router.get('/', async (req, res) => {
 
         if (connection === 'close') {
           const statusCode = getStatusCode(lastDisconnect?.error);
+          const isRejected = statusCode === 401 || statusCode === 403;
+          const message = isRejected
+            ? 'WhatsApp rejected the pairing request or the temporary session expired. Please try again.'
+            : 'Connection closed before pairing completed. Please try again.';
+
+          updatePairingSession(id, { state: 'failed', error: message });
           cleanup();
-          if ((statusCode === 401 || statusCode === 403) && !res.headersSent) {
-            sendError(400, 'WhatsApp rejected the pairing request or session expired. Please try again.');
-          } else if (!res.headersSent) {
-            sendError(502, 'Connection closed before pairing completion.');
-          }
+          if (!res.headersSent) sendError(isRejected ? 400 : 502, message);
         }
       } catch (error) {
         console.error('[PAIRING] Connection update failed:', error.message);
+        updatePairingSession(id, { state: 'failed', error: error.message });
         cleanup();
-        sendError(502, 'Pairing error occurred. Please try again.');
+        sendError(502, 'A pairing error occurred. Please try again.');
       }
     });
   } catch (error) {
     console.error('[PAIRING] Socket initialization failed:', error.message);
+    updatePairingSession(id, { state: 'failed', error: error.message });
     cleanup();
-    sendError(502, 'Pairing service initialization failed.');
+    sendError(502, 'Pairing service initialization failed. Please try again.');
   }
 });
 
