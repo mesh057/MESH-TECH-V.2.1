@@ -9,6 +9,7 @@ const {
   delay,
   makeCacheableSignalKeyStore,
   fetchLatestBaileysVersion,
+  Browsers,
 } = require('@whiskeysockets/baileys');
 
 const router = express.Router();
@@ -76,7 +77,7 @@ router.get('/', async (req, res) => {
         },
         logger,
         version,
-        browser: ['MESH-TECH-V2', 'Chrome', '1.0.0'],
+        browser: Browsers.ubuntu('Chrome'),
         markOnlineOnConnect: false,
         syncFullHistory: false,
         connectTimeoutMs: 60_000,
