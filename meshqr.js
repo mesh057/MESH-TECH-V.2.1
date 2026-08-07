@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
-        browser: Browsers.ubuntu('Chrome'),
+        browser: Browsers.macOS('Desktop'),
       });
 
       Mesh_QR.ev.on('creds.update', saveCreds);

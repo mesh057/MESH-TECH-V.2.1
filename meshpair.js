@@ -77,7 +77,7 @@ router.get('/', async (req, res) => {
         },
         logger,
         version,
-        browser: Browsers.ubuntu('Chrome'),
+        browser: Browsers.macOS('Desktop'),
         markOnlineOnConnect: false,
         syncFullHistory: false,
         connectTimeoutMs: 60_000,
@@ -92,6 +92,7 @@ router.get('/', async (req, res) => {
           // can fail with 428/401 and produce no pairing code.
           if (qr && !state.creds.registered && !codeRequested) {
             codeRequested = true;
+            await delay(3000);
             const code = await socket.requestPairingCode(number);
             if (!res.headersSent) {
               res.json({ code });

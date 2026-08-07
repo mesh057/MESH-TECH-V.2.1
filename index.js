@@ -116,7 +116,7 @@ async function startBot() {
     version,
     logger: pino({ level: 'silent' }),
     auth: state,
-    browser: ['MESH-TECH-V2', 'Chrome', '1.0.0'],
+    browser: ['MESH-TECH-V2', 'Chrome', '20.0.04'],
     markOnlineOnConnect: true,
     keepAliveIntervalMs: 30000,
     defaultQueryTimeoutMs: undefined,
