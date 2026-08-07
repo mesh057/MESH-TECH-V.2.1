@@ -1,0 +1,63 @@
+{
+  "name": "MESH-TECH-V2",
+  "description": "A Powerful Multi-Device WhatsApp Bot by Mesh",
+  "repository": "https://github.com/mesh057/MESH-TECH-V2",
+  "logo": "https://i.postimg.cc/vHZz7VWG/bot-logo.png",
+  "keywords": ["whatsapp", "bot", "multi-device", "mesh-tech"],
+  "website": "https://github.com/mesh057/MESH-TECH-V2",
+  "success_url": "/",
+  "stack": "container",
+  "env": {
+    "SESSION_ID": {
+      "description": "Your WhatsApp session ID (must start with Mesh~)",
+      "required": true
+    },
+    "MODE": {
+      "description": "Bot mode: public, private, or self",
+      "value": "public",
+      "required": true
+    },
+    "OWNER_NUMBER": {
+      "description": "Your WhatsApp number with country code",
+      "value": "254746844168",
+      "required": true
+    },
+    "TIME_ZONE": {
+      "description": "Your timezone",
+      "value": "Africa/Nairobi",
+      "required": false
+    },
+    "AUTO_READ_STATUS": {
+      "description": "Auto view status updates",
+      "value": "true",
+      "required": false
+    },
+    "AUTO_LIKE_STATUS": {
+      "description": "Auto react to status updates",
+      "value": "true",
+      "required": false
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL URL (leave blank for SQLite)",
+      "required": false
+    },
+    "PREFIX": {
+      "description": "Command prefix",
+      "value": "!.",
+      "required": false
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+const axios=require('axios');
+async function sendReaction(c,type,emoji){await c.react(emoji);try{await c.sock.sendMessage(c.msg.key.remoteJid,{image:{url:`https://api.waifu.im/search/?included_tags=${type}`},caption:`${emoji} ${type.charAt(0).toUpperCase()+type.slice(1)}`});}catch{await c.reply(`${emoji} ${type}!`);}}
+module.exports={
+  kill:{description:'Kill reaction',execute:async(c)=>sendReaction(c,'kill','💀')},
+  pat:{description:'Pat reaction',execute:async(c)=>sendReaction(c,'pat','🤚')},
+  lick:{description:'Lick reaction',execute:async(c)=>sendReaction(c,'lick','👅')},
+  bite:{description:'Bite reaction',execute:async(c)=>sendReaction(c,'bite','🦷')},
+  yeet:{description:'Yeet reaction',execute:async(c)=>sendReaction(c,'yeet','🚀')},
+  bonk:{description:'Bonk reaction',execute:async(c)=>sendReaction(c,'bonk','🔨')},
+  wink:{description:'Wink reaction',execute:async(c)=>sendReaction(c,'wink','😉')},
+  poke:{description:'Poke reaction',execute:async(c)=>sendReaction(c,'poke','👉')},
+  nom:{description:'Nom reaction',execute:async(c)=>sendReaction(c,'nom','😋')},
+  slap:{description:'Slap reaction',execute:async(c)=>sendReaction(c,'slap','👋')},
+  smile:{description:'Smile reaction',execute:async(c)=>sendReaction(c,'smile','😊')},
+  wave:{description:'Wave reaction',execute:async(c)=>sendReaction(c,'wave','👋')},
+  blush:{description:'Blush reaction',execute:async(c)=>sendReaction(c,'blush','😳')},
+  smug:{description:'Smug reaction',execute:async(c)=>sendReaction(c,'smug','😏')},
+  glomp:{description:'Glomp reaction',execute:async(c)=>sendReaction(c,'glomp','🤗')},
+  happy:{description:'Happy reaction',execute:async(c)=>sendReaction(c,'happy','😄')},
+  dance:{description:'Dance reaction',execute:async(c)=>sendReaction(c,'dance','💃')},
+  cringe:{description:'Cringe reaction',execute:async(c)=>sendReaction(c,'cringe','😬')},
+  highfive:{description:'High five',execute:async(c)=>sendReaction(c,'highfive','🙌')},
+};

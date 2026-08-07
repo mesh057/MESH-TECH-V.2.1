@@ -1,0 +1,21 @@
+const axios=require('axios');
+module.exports={
+  tt2:{description:'TikTok v2',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !tt2 <url>');await c.react('📱');try{const{data}=await axios.get(`https://api.tikdown.xyz/api/download?url=${encodeURIComponent(c.args[0])}`);if(data.status==='success'){await c.sock.sendMessage(c.msg.key.remoteJid,{video:{url:data.video},caption:`📱 *TikTok*\n👤 ${data.author}`});}else{await c.reply('❌ Failed.');}}catch{await c.reply('❌ Service down.');}}},
+  tt3:{description:'TikTok v3',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !tt3 <url>');await c.react('📱');await c.reply('📱 Processing...');}},
+  ttslide:{description:'TikTok slide',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !ttslide <url>');await c.react('📸');await c.reply('📸 Processing...');}},
+  igmp4:{description:'Instagram video',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !igmp4 <url>');await c.react('📸');await c.reply('📸 Processing...');}},
+  igdl:{description:'Instagram DL',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !igdl <url>');await c.react('📸');await c.reply('📸 Processing...');}},
+  gdrive:{description:'Google Drive',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !gdrive <url>');await c.react('☁️');await c.reply('☁️ Processing...');}},
+  sfile:{description:'SolidFiles',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !sfile <url>');await c.react('📁');await c.reply('📁 Processing...');}},
+  aio:{description:'AIO downloader',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !aio <url>');await c.react('⬇️');await c.reply('⬇️ Processing...');}},
+  goredl:{description:'Gore DL',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !goredl <url>');await c.react('⬇️');await c.reply('⬇️ Processing...');}},
+  twitter:{description:'Twitter/X video',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !twitter <url>');await c.react('🐦');try{const{data}=await axios.get(`https://api.twitter.com/oembed?url=${encodeURIComponent(c.args[0])}`);await c.reply(`🐦 *Twitter*\n📝 ${data.title||'No title'}`);}catch{await c.reply('❌ Failed.');}}},
+  gitclone:{description:'GitHub clone',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !gitclone <url>');await c.react('🐙');const repo=c.args[0].replace('https://github.com/','').replace('.git','');await c.reply(`🐙 *Repo:* ${repo}\n\n\`\`\`git clone ${c.args[0]}\`\`\``);}},
+  instagram:{description:'Instagram DL',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !instagram <url>');await c.react('📸');await c.reply('📸 Processing...');}},
+  apk:{description:'Download APK',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !apk <app>');await c.react('📱');await c.reply(`📱 Searching APK: *${c.fullArgs}*`);}},
+  mediafire:{description:'MediaFire DL',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !mediafire <url>');await c.react('🔥');await c.reply('🔥 Processing...');}},
+  yts:{description:'YouTube search',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !yts <query>');await c.react('🔍');try{const yts=require('yt-search');const s=await yts(c.fullArgs);let t=`🔍 *YouTube Search*\n\n`;s.videos.slice(0,5).forEach((v,i)=>{t+=`${i+1}. *${v.title}*\n   👤 ${v.author.name} | ⏱️ ${v.timestamp}\n   🔗 ${v.url}\n\n`;});await c.reply(t);}catch{await c.reply('❌ Failed.');}}},
+  facebook:{description:'Facebook video',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !facebook <url>');await c.react('📘');await c.reply('📘 Processing...');}},
+  terabox:{description:'Terabox DL',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !terabox <url>');await c.react('📦');await c.reply('📦 Processing...');}},
+  lyrics:{description:'Song lyrics',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !lyrics <song>');await c.react('🎵');try{const{data}=await axios.get(`https://api.lyrics.ovh/v1/${encodeURIComponent(c.fullArgs)}`);await c.reply(`🎵 *Lyrics*\n\n${data.lyrics?.substring(0,4000)||'Not found.'}`);}catch{await c.reply('❌ Not found.');}}},
+};

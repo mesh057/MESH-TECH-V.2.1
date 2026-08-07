@@ -1,0 +1,34 @@
+name: MESH-TECH MD BOT
+
+on:
+  workflow_dispatch:
+  schedule:
+    # restart every 5h50m-ish (Actions caps a job at 6h)
+    - cron: "0 */5 * * *"
+
+concurrency:
+  group: mesh-bot
+  cancel-in-progress: true
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Start bot
+        env:
+          SESSION_ID: ${{ secrets.SESSION_ID }}
+          OWNER_NUMBER: ${{ secrets.OWNER_NUMBER }}
+          PREFIX: ${{ secrets.PREFIX }}
+          BOT_NAME: MESH-TECH-MD
+        run: node index.js

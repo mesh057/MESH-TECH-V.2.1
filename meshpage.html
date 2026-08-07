@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESH-TECH-V2 | Session Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+    }
+    .logo-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid rgba(0,242,96,0.3);
+      margin-bottom: 20px;
+      box-shadow: 0 0 40px rgba(0,242,96,0.2);
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 48px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #00f260, #0575e6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+      text-shadow: 0 0 40px rgba(0,242,96,0.3);
+    }
+    .tagline {
+      color: rgba(255,255,255,0.6);
+      font-size: 16px;
+      margin-bottom: 48px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 36px 24px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      text-decoration: none;
+      color: #fff;
+      display: block;
+    }
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0,242,96,0.3);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .card-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.5;
+    }
+    .footer {
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+    }
+    .footer a {
+      color: #00f260;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    .footer a:hover { text-decoration: underline; }
+    @media (max-width: 480px) {
+      .cards { grid-template-columns: 1fr; }
+      .logo { font-size: 32px; }
+      .logo-img { width: 80px; height: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://i.postimg.cc/vHZz7VWG/bot-logo.png" alt="MESH-TECH Logo" class="logo-img"/>
+    <div class="logo">MESH-TECH-V2</div>
+    <div class="tagline">WhatsApp Session Generator</div>
+
+    <div class="cards">
+      <a href="/pair" class="card">
+        <div class="card-icon">🔢</div>
+        <h3>Pairing Code</h3>
+        <p>Enter your phone number to get a pairing code. Link your device without scanning a QR code.</p>
+      </a>
+      <a href="/qr" class="card">
+        <div class="card-icon">📷</div>
+        <h3>QR Code</h3>
+        <p>Scan a QR code with your WhatsApp to generate a session ID instantly.</p>
+      </a>
+    </div>
+
+    <div class="footer">
+      <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">Channel</a> |
+      <a href="https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M" target="_blank">Group</a> |
+      <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">GitHub</a>
+      <br><br>
+      Made with ❤️ by Mesh
+    </div>
+  </div>
+</body>
+</html>

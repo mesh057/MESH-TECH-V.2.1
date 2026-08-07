@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESH-TECH-V2 | Pair Code</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 48px 36px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    }
+    .logo-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,242,96,0.3);
+      margin-bottom: 16px;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #00f260, #0575e6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: rgba(255,255,255,0.6);
+      font-size: 13px;
+      margin-bottom: 32px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    .input-group input:focus {
+      border-color: #00f260;
+      box-shadow: 0 0 0 3px rgba(0,242,96,0.15);
+    }
+    .input-group input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00f260, #0575e6);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,242,96,0.3);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .result {
+      margin-top: 24px;
+      padding: 20px;
+      background: rgba(0,242,96,0.08);
+      border: 1px solid rgba(0,242,96,0.2);
+      border-radius: 12px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .result h3 {
+      color: #00f260;
+      font-size: 14px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .code-box {
+      background: rgba(0,0,0,0.3);
+      padding: 14px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #00f260;
+      letter-spacing: 4px;
+      word-break: break-all;
+    }
+    .instructions {
+      margin-top: 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .footer a {
+      color: #00f260;
+      text-decoration: none;
+      font-size: 12px;
+      margin: 0 8px;
+    }
+    .footer a:hover { text-decoration: underline; }
+    .loading {
+      display: none;
+      margin-top: 20px;
+    }
+    .loading.show { display: block; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #00f260;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      color: #ff4757;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+    .error.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://i.postimg.cc/vHZz7VWG/bot-logo.png" alt="MESH-TECH Logo" class="logo-img"/>
+    <div class="logo">MESH-TECH-V2</div>
+    <div class="subtitle">WhatsApp Session Generator</div>
+
+    <div class="input-group">
+      <label>Enter Your Number</label>
+      <input type="text" id="number" placeholder="254746844168" maxlength="15">
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="getCode()">Get Pairing Code</button>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="font-size:13px;color:rgba(255,255,255,0.6)">Generating your pairing code...</p>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div class="result" id="result">
+      <h3>Your Pairing Code</h3>
+      <div class="code-box" id="codeBox"></div>
+      <div class="instructions">
+        📱 Open WhatsApp → Settings → Linked Devices → Link a Device<br>
+        ⌨️ Enter the code above<br>
+        ⏳ Wait for the Session ID to be sent to your WhatsApp
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/qr">QR Code</a> |
+      <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">Channel</a> |
+      <a href="https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M" target="_blank">Group</a> |
+      <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <script>
+    async function getCode() {
+      const number = document.getElementById('number').value.replace(/\D/g, '');
+      const btn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
+      const error = document.getElementById('error');
+      const codeBox = document.getElementById('codeBox');
+
+      error.classList.remove('show');
+      result.classList.remove('show');
+
+      if (!number || number.length < 10) {
+        error.textContent = '❌ Please enter a valid number with country code (e.g. 254746844168)';
+        error.classList.add('show');
+        return;
+      }
+
+      btn.disabled = true;
+      loading.classList.add('show');
+
+      try {
+        const res = await fetch('/code?number=' + encodeURIComponent(number));
+        const data = await res.json();
+
+        loading.classList.remove('show');
+
+        if (data.code && data.code !== 'Service Unavailable') {
+          codeBox.textContent = data.code;
+          result.classList.add('show');
+        } else {
+          error.textContent = '❌ Service temporarily unavailable. Please try again.';
+          error.classList.add('show');
+        }
+      } catch (e) {
+        loading.classList.remove('show');
+        error.textContent = '❌ Network error. Please try again.';
+        error.classList.add('show');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('number').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') getCode();
+    });
+  </script>
+</body>
+</html>

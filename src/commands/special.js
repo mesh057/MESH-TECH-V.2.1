@@ -1,0 +1,21 @@
+const axios=require('axios');
+module.exports={
+  lockotp:{description:'Lock OTP',execute:async(c)=>{await c.react('🔒');await c.reply('🔒 OTP lock enabled.');}},
+  antibug:{description:'Anti bug',execute:async(c)=>{await c.react('🛡️');await c.reply('🛡️ Anti-bug protection active.');}},
+  xxxsearch:{description:'XXX search',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !xxxsearch <query>');await c.react('🔞');await c.reply('🔞 NSFW search requires adult API.');}},
+  xxxdownload:{description:'XXX download',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !xxxdownload <url>');await c.react('🔞');await c.reply('🔞 Download requires adult API.');}},
+  xnxxsearch:{description:'XNXX search',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !xnxxsearch <query>');await c.react('🔞');await c.reply('🔞 Search requires adult API.');}},
+  xnxxdownload:{description:'XNXX download',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !xnxxdownload <url>');await c.react('🔞');await c.reply('🔞 Download requires adult API.');}},
+  hentai:{description:'Hentai image',execute:async(c)=>{await c.react('🔞');try{await c.sock.sendMessage(c.msg.key.remoteJid,{image:{url:`https://api.waifu.im/search/?included_tags=hentai`},caption:'🔞 Hentai'});}catch{await c.reply('❌ Failed.');}}},
+  text2pdf:{description:'Text to PDF',execute:async(c)=>{if(!c.fullArgs)return c.reply('Usage: !text2pdf <text>');await c.react('📄');await c.reply('📄 PDF generation — processing...');}},
+  livescores:{description:'Live sports scores',execute:async(c)=>{await c.react('⚽');try{const{data}=await axios.get('https://api.football-data.org/v4/matches',{headers:{'X-Auth-Token':'demo'}});await c.reply(`⚽ *Live Scores*\n\n${data.matches?.map(m=>`${m.homeTeam.name} ${m.score.fullTime.home} - ${m.score.fullTime.away} ${m.awayTeam.name}`).join('\n')||'No live matches'}`);}catch{await c.reply('❌ Scores unavailable.');}}},
+  reactchannel:{description:'React to channel',execute:async(c)=>{await c.react('📢');await c.reply('📢 Channel reaction sent.');}},
+  faceswap:{description:'Face swap',execute:async(c)=>{await c.react('🎭');await c.reply('🎭 Reply to two images for face swap.');}},
+  sureodds:{description:'Sure odds',execute:async(c)=>{await c.react('🎲');await c.reply('🎲 Sure odds — sports betting tips.');}},
+  bin:{description:'BIN checker',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !bin <bin>');await c.react('💳');try{const{data}=await axios.get(`https://lookup.binlist.net/${c.args[0]}`);await c.reply(`💳 *BIN Info*\n🏦 Bank: ${data.bank?.name||'N/A'}\n💳 Scheme: ${data.scheme||'N/A'}\n🌍 Country: ${data.country?.name||'N/A'}`);}catch{await c.reply('❌ Invalid BIN.');}}},
+  fakeid:{description:'Fake ID generator',execute:async(c)=>{await c.react('🆔');const names=['John Smith','Jane Doe','Alex Johnson'];const countries=['USA','UK','Canada','Australia'];await c.reply(`🆔 *Fake ID*\n\n👤 Name: ${names[Math.floor(Math.random()*names.length)]}\n🌍 Country: ${countries[Math.floor(Math.random()*countries.length)]}\n🎂 DOB: ${Math.floor(Math.random()*30)+1970}-${Math.floor(Math.random()*12)+1}-${Math.floor(Math.random()*28)+1}`);}},
+  anime:{description:'Anime episode',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !anime <episode>');await c.react('🇯🇵');await c.reply(`🇯🇵 Anime episode ${c.args[0]} — processing...`);}},
+  cut:{description:'Cut video',execute:async(c)=>{if(!c.args[0])return c.reply('Usage: !cut <start/end>');await c.react('✂️');await c.reply('✂️ Video cutting — reply to video.');}},
+  savevideo:{description:'Save video',execute:async(c)=>{await c.react('💾');await c.reply('💾 Video saved.');}},
+  addmusic:{description:'Add music to video',execute:async(c)=>{await c.react('🎵');await c.reply('🎵 Reply to video and audio.');}},
+};

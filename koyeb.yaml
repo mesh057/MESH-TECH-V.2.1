@@ -1,0 +1,35 @@
+name: mesh-tech-v2
+regions:
+  - fra
+instance_types:
+  - nano
+scalings:
+  - min: 1
+    max: 1
+env:
+  - name: SESSION_ID
+    value: ""
+  - name: MODE
+    value: "public"
+  - name: OWNER_NUMBER
+    value: ""
+  - name: TIME_ZONE
+    value: "Africa/Nairobi"
+  - name: AUTO_READ_STATUS
+    value: "true"
+  - name: AUTO_LIKE_STATUS
+    value: "true"
+  - name: DATABASE_URL
+    value: ""
+  - name: PREFIX
+    value: "!."
+ports:
+  - port: 3000
+    protocol: http
+routes:
+  - port: 3000
+    path: /
+healthchecks:
+  - port: 3000
+    path: /health
+    protocol: http
