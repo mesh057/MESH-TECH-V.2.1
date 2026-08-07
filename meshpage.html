@@ -264,24 +264,34 @@
     </div>
 
     <script>
-        // Fetch Real-Time System Status
-        async function updateSystemStatus() {
-            try {
-                const res = await fetch('/api/system-status');
-                const data = await res.json();
-                if (data) {
-                    document.getElementById('connectedBots').textContent = data.connectedBots || 1;
-                    document.getElementById('activeSessions').textContent = data.activeSessions || 1;
-                    document.getElementById('systemStatus').textContent = data.status || 'ONLINE';
-                }
-            } catch (e) {
-                console.error('Failed to fetch system status:', e);
-            }
+        // Real-Time System Status via WebSocket
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            const ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data) {
+                        document.getElementById('connectedBots').textContent = data.connectedBots || 1;
+                        document.getElementById('activeSessions').textContent = data.activeSessions || 1;
+                        document.getElementById('systemStatus').textContent = data.status || 'ONLINE';
+                    }
+                } catch (e) {}
+            };
+
+            ws.onclose = () => {
+                // Reconnect after 3 seconds if disconnected
+                setTimeout(initWebSocket, 3000);
+            };
+
+            ws.onerror = () => {
+                ws.close();
+            };
         }
 
-        // Poll every 3 seconds
-        setInterval(updateSystemStatus, 3000);
-        updateSystemStatus();
+        initWebSocket();
 
         async function getCode() {
             const number = document.getElementById('number').value.replace(/\D/g, '');

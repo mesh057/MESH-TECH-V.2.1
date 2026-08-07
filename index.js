@@ -86,8 +86,66 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(chalk.green(`[SERVER] Keep-alive running on port ${PORT}`));
+const http = require('http');
+const { WebSocketServer } = require('ws');
+
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+
+async function getSystemStatusData() {
+  try {
+    let authCount = 0;
+    try {
+      const authFiles = await fs.readdir('./auth_info');
+      authCount = authFiles.filter(f => f !== '.gitkeep').length;
+    } catch (e) {}
+
+    let tempCount = 0;
+    try {
+      const tempFiles = await fs.readdir('./temp');
+      tempCount = tempFiles.filter(f => f !== '.gitkeep').length;
+    } catch (e) {}
+
+    const totalSessions = authCount + tempCount + 1;
+    const connectedBots = 1 + (authCount > 0 ? authCount : 0);
+
+    return {
+      connectedBots: connectedBots,
+      activeSessions: totalSessions,
+      uptime: Math.floor(process.uptime()),
+      status: 'ONLINE'
+    };
+  } catch (err) {
+    return {
+      connectedBots: 1,
+      activeSessions: 1,
+      uptime: Math.floor(process.uptime()),
+      status: 'ONLINE'
+    };
+  }
+}
+
+wss.on('connection', async (ws) => {
+  // Send immediate status on connect
+  const initialStatus = await getSystemStatusData();
+  ws.send(JSON.stringify(initialStatus));
+
+  ws.on('error', (err) => {});
+});
+
+// Broadcast status update to all connected WebSocket clients every 3 seconds
+setInterval(async () => {
+  const statusData = await getSystemStatusData();
+  const payload = JSON.stringify(statusData);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) { // OPEN
+      client.send(payload);
+    }
+  });
+}, 3000);
+
+server.listen(PORT, () => {
+  console.log(chalk.green(`[SERVER] Keep-alive & WebSocket server running on port ${PORT}`));
 });
 
 /**
