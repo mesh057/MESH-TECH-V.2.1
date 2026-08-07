@@ -4,599 +4,330 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MESH-TECH-V2 | Pairing Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Courier+New:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --neon-green: #00ff00;
-            --dark-bg: #000000;
-            --border-glow: 0 0 8px rgba(0, 255, 0, 0.4);
-            --text-glow: 0 0 5px rgba(0, 255, 0, 0.5);
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Space Mono', monospace;
+            font-family: 'Inter', sans-serif;
         }
-
         body {
-            background-color: var(--dark-bg);
-            color: var(--neon-green);
+            background-color: #05050a;
+            color: #ffffff;
             min-height: 100vh;
-            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* Top Terminal Bar */
-        .terminal-header {
-            width: 100%;
-            max-width: 1000px;
-            border: 1px solid var(--neon-green);
-            padding: 5px 15px;
-            margin-bottom: 20px;
-            font-size: 10px;
-            display: flex;
-            justify-content: space-between;
-            box-shadow: var(--border-glow);
-        }
-
-        .terminal-header .left::before {
-            content: '[] "';
-        }
-        .terminal-header .left::after {
-            content: '"';
-        }
-
-        /* Main Header */
-        .main-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .bot-logo {
-            font-size: 40px;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .bot-name {
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: 4px;
-            text-shadow: var(--text-glow);
-            margin-bottom: 5px;
-        }
-
-        .bot-subtitle {
-            font-size: 12px;
-            letter-spacing: 2px;
-            opacity: 0.8;
-            margin-bottom: 15px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            border: 1px solid var(--neon-green);
-            padding: 5px 15px;
-            font-size: 10px;
-            text-transform: uppercase;
-            box-shadow: var(--border-glow);
-        }
-
-        .status-badge::before {
-            content: '✓ ';
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            width: 100%;
-            max-width: 1000px;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            padding: 10px;
-            cursor: pointer;
-            font-size: 12px;
-            text-transform: uppercase;
-            transition: all 0.3s;
-        }
-
-        .tab-btn.active {
-            background: var(--neon-green);
-            color: var(--dark-bg);
-            box-shadow: var(--border-glow);
-        }
-
-        .tab-btn:hover:not(.active) {
-            background: rgba(0, 255, 0, 0.1);
-        }
-
-        /* Main Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            width: 100%;
-            max-width: 1000px;
-        }
-
-        .panel {
-            border: 1px solid var(--neon-green);
-            padding: 20px;
-            box-shadow: var(--border-glow);
-            position: relative;
-        }
-
-        .panel-title {
-            font-size: 14px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            text-transform: uppercase;
-        }
-
-        .panel-title::before {
-            content: '>_ ';
-            margin-right: 10px;
-        }
-
-        /* Pairing Form */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 10px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        .form-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            padding: 12px;
-            font-size: 16px;
-            outline: none;
-        }
-
-        .form-input::placeholder {
-            color: rgba(0, 255, 0, 0.3);
-        }
-
-        .submit-btn {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            padding: 12px;
-            cursor: pointer;
-            font-size: 12px;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 20%, rgba(0, 242, 96, 0.08) 0%, transparent 50%);
         }
-
-        .submit-btn:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Instructions Section */
-        .instructions-box {
-            margin-top: 25px;
-            border: 1px solid rgba(0, 255, 0, 0.3);
-            padding: 15px;
-        }
-
-        .instructions-title {
-            font-size: 10px;
-            color: #ffaa00;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .instruction-item {
-            font-size: 10px;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        .instruction-item::before {
-            content: '>> ';
-        }
-
-        .expiry-warning {
-            font-size: 10px;
-            color: #ffaa00;
-            margin-top: 10px;
-            text-transform: uppercase;
-        }
-
-        /* System Status (Right Panel) */
-        .status-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        .status-card {
-            border: 1px solid var(--neon-green);
-            padding: 10px;
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: rgba(18, 18, 26, 0.85);
+            border: 1px solid rgba(0, 242, 96, 0.25);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 242, 96, 0.1);
+            backdrop-filter: blur(10px);
             text-align: center;
         }
-
-        .status-value {
+        .logo-img {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid #00f260;
+            margin-bottom: 16px;
+            box-shadow: 0 0 15px rgba(0, 242, 96, 0.4);
+            object-fit: cover;
+        }
+        .logo {
             font-size: 24px;
             font-weight: 700;
-            display: block;
-        }
-
-        .status-label {
-            font-size: 8px;
-            text-transform: uppercase;
-            opacity: 0.7;
-        }
-
-        .feature-list {
-            margin-bottom: 20px;
-        }
-
-        .list-header {
-            font-size: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            text-transform: uppercase;
-        }
-
-        .list-header i {
-            margin-right: 8px;
-        }
-
-        .list-item {
-            font-size: 9px;
+            color: #00f260;
+            letter-spacing: 2px;
             margin-bottom: 4px;
-            display: block;
-            opacity: 0.8;
         }
-
-        .list-item::before {
-            content: '> ';
+        .subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-
-        /* QR Code Display */
-        #qr-container {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-
-        #qr-image {
-            max-width: 250px;
-            border: 5px solid white;
-            margin-bottom: 20px;
-        }
-
-        /* Results Display */
-        .result-box {
-            display: none;
-            margin-top: 20px;
+        /* Real-Time System Status Widget */
+        .status-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 242, 96, 0.15);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             text-align: center;
         }
-
-        .code-display {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: 8px;
-            padding: 20px;
-            border: 1px dashed var(--neon-green);
-            margin-bottom: 10px;
-            cursor: copy;
-        }
-
-        .copy-hint {
-            font-size: 9px;
-            opacity: 0.6;
-        }
-
-        /* Footer */
-        .terminal-footer {
-            width: 100%;
-            max-width: 1000px;
-            border-top: 1px solid rgba(0, 255, 0, 0.3);
-            margin-top: 40px;
-            padding-top: 20px;
+        .status-item {
             display: flex;
-            justify-content: center;
-            gap: 20px;
+            flex-direction: column;
+            align-items: center;
+        }
+        .status-label {
             font-size: 10px;
-            padding-bottom: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
-
-        .terminal-footer a {
-            color: var(--neon-green);
-            text-decoration: none;
-            opacity: 0.7;
-            transition: opacity 0.3s;
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00f260;
         }
-
-        .terminal-footer a:hover {
-            opacity: 1;
-            text-decoration: underline;
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
         }
-
-        /* Loading Spinner */
-        .loader {
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-group input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            border-color: #00f260;
+            box-shadow: 0 0 10px rgba(0, 242, 96, 0.2);
+        }
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #00f260, #00b048);
+            color: #000000;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 242, 96, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 242, 96, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
             display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--neon-green);
-            border-top: 2px solid transparent;
+            margin-top: 20px;
+        }
+        .loading.show { display: block; }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00f260;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error {
+            color: #ff4757;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
         }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            .terminal-header {
-                font-size: 8px;
-            }
-            .bot-name {
-                font-size: 22px;
-            }
+        .error.show { display: block; }
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(0, 242, 96, 0.08);
+            border: 1px solid rgba(0, 242, 96, 0.25);
+            border-radius: 10px;
+            display: none;
+            text-align: left;
         }
+        .result.show { display: block; }
+        .result h3 {
+            color: #00f260;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .code-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: #00f260;
+            letter-spacing: 3px;
+            text-align: center;
+            word-break: break-all;
+            margin-bottom: 10px;
+            border: 1px dashed rgba(0, 242, 96, 0.3);
+        }
+        .instructions {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+        .footer {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+        }
+        .footer a {
+            color: #00f260;
+            text-decoration: none;
+            margin: 0 6px;
+            font-weight: 500;
+        }
+        .footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="terminal-header">
-        <div class="left">SYSTEM [MESH-TECH PAIRING TERMINAL v2] PROTOCOL ...</div>
-        <div class="right" id="clock">00:00:00</div>
+    <div class="container">
+        <img src="https://i.postimg.cc/vHZz7VWG/bot-logo.png" alt="MESH-TECH Logo" class="logo-img"/>
+        <div class="logo">MESH-TECH-V2</div>
+        <div class="subtitle">WhatsApp Session Generator</div>
+
+        <!-- Real-Time System Status Widget -->
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="status-label">Bots Connected</span>
+                <span class="status-value" id="connectedBots">1</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Active Sessions</span>
+                <span class="status-value" id="activeSessions">1</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">System Status</span>
+                <span class="status-value" id="systemStatus" style="color: #00f260;">ONLINE</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Enter Your WhatsApp Number</label>
+            <input type="text" id="number" placeholder="254746844168" maxlength="15">
+        </div>
+        <button class="btn" id="submitBtn" onclick="getCode()">Get Pairing Code</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="font-size:12px;color:rgba(255,255,255,0.6)">Requesting pairing code from WhatsApp...</p>
+        </div>
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h3>Your Pairing Code</h3>
+            <div class="code-box" id="codeBox"></div>
+            <div class="instructions">
+                📱 Open WhatsApp → Settings → Linked Devices → Link a Device<br>
+                ⌨️ Enter the code above<br>
+                ⏳ Wait for your Session ID to be sent to your WhatsApp
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="/qr">QR Code</a> |
+            <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">Channel</a> |
+            <a href="https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M" target="_blank">Group</a> |
+            <a href="https://github.com/mesh057/MESH-TECH-V2.1" target="_blank">GitHub</a>
+        </div>
     </div>
 
-    <header class="main-header">
-        <span class="bot-logo">🤖</span>
-        <h1 class="bot-name">MESH TECH</h1>
-        <div class="bot-subtitle">| WHATSAPP MULTI-DEVICE PAIRING TERMINAL |</div>
-        <div class="status-badge">System Online</div>
-    </header>
-
-    <nav class="tabs">
-        <button class="tab-btn active" onclick="switchTab('manual')">📞 Manual</button>
-        <button class="tab-btn" onclick="switchTab('qr')">📷 QR Scan</button>
-    </nav>
-
-    <main class="dashboard-grid">
-        <!-- Left Panel: Interaction -->
-        <section class="panel" id="manual-panel">
-            <h2 class="panel-title">Pairing Protocol</h2>
-            
-            <div id="pairing-form">
-                <div class="form-group">
-                    <label class="form-label">Phone Number</label>
-                    <input type="text" id="number" class="form-input" placeholder="254746844168" maxlength="15">
-                </div>
-                
-                <button class="submit-btn" id="submitBtn" onclick="getCode()">
-                    <span id="btn-text">🔑 Generate Code</span>
-                    <div class="loader" id="loader"></div>
-                </button>
-            </div>
-
-            <div class="result-box" id="result">
-                <div class="code-display" id="codeBox" onclick="copyCode()">--------</div>
-                <div class="copy-hint">Click code to copy to clipboard</div>
-            </div>
-
-            <div class="instructions-box">
-                <h3 class="instructions-title">[ Pairing Instructions ]</h3>
-                <span class="instruction-item">Open WhatsApp on your phone</span>
-                <span class="instruction-item">Navigate to Settings > Linked Devices > Link with Code</span>
-                <span class="instruction-item">Paste the code above and confirm</span>
-                <div class="expiry-warning">⚠ Code expires in 60 seconds</div>
-            </div>
-        </section>
-
-        <!-- QR Panel (Hidden by default) -->
-        <section class="panel" id="qr-panel" style="display: none;">
-            <h2 class="panel-title">QR Protocol</h2>
-            <div id="qr-container">
-                <img id="qr-image" src="" alt="QR Code">
-                <p class="instruction-item">Scan this QR code with your WhatsApp</p>
-                <button class="submit-btn" style="margin-top: 20px;" onclick="generateQR()">
-                    🔄 Refresh QR
-                </button>
-            </div>
-            <div id="qr-loading" style="text-align: center; padding: 40px;">
-                <div class="loader" style="display: inline-block; width: 40px; height: 40px;"></div>
-                <p style="margin-top: 15px;">Initializing QR Session...</p>
-            </div>
-        </section>
-
-        <!-- Right Panel: System Info -->
-        <section class="panel">
-            <h2 class="panel-title">System Status</h2>
-            
-            <div class="status-grid">
-                <div class="status-card">
-                    <span class="status-value">2</span>
-                    <span class="status-label">Active Bots</span>
-                </div>
-                <div class="status-card">
-                    <span class="status-value">2</span>
-                    <span class="status-label">Total Sessions</span>
-                </div>
-            </div>
-
-            <div class="feature-list">
-                <h3 class="list-header">🛡 [ Core Features ]</h3>
-                <span class="list-item">500+ Commands Loaded</span>
-                <span class="list-item">Auto-Reconnect Enabled</span>
-                <span class="list-item">Multi-Session Support</span>
-                <span class="list-item">AI Chatbot Active</span>
-                <span class="list-item">Media Processing</span>
-                <span class="list-item">Group Management</span>
-                <span class="list-item">Image Enhancement (Remini)</span>
-                <span class="list-item">Pinterest Integration</span>
-            </div>
-
-            <div class="feature-list">
-                <h3 class="list-header">⌨ [ Command Prefix ]</h3>
-                <span class="list-item">. - Command Trigger</span>
-                <span class="list-item">.menu - Show All Commands</span>
-                <span class="list-item">.remini - Enhance Images</span>
-                <span class="list-item">.pinterest - Search Images</span>
-            </div>
-
-            <div class="feature-list">
-                <h3 class="list-header">🛡 [ Security ]</h3>
-                <span class="list-item">Toxic-Baileys Library</span>
-                <span class="list-item">LID Mapping Support</span>
-                <span class="list-item">Encrypted Sessions</span>
-                <span class="list-item">Anti-Ban Protection</span>
-            </div>
-        </section>
-    </main>
-
-    <footer class="terminal-footer">
-        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">MESH-TECH MD BOT v2.0 © 2026</a>
-        <span>|</span>
-        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">GITHUB</a>
-        <span>|</span>
-        <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">WHATSAPP</a>
-    </footer>
-
     <script>
-        // Clock
-        function updateClock() {
-            const now = new Date();
-            const time = now.getHours().toString().padStart(2, '0') + ':' + 
-                         now.getMinutes().toString().padStart(2, '0') + ':' + 
-                         now.getSeconds().toString().padStart(2, '0');
-            document.getElementById('clock').innerText = time;
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // Tab Switching
-        function switchTab(tab) {
-            const manualBtn = document.querySelectorAll('.tab-btn')[0];
-            const qrBtn = document.querySelectorAll('.tab-btn')[1];
-            const manualPanel = document.getElementById('manual-panel');
-            const qrPanel = document.getElementById('qr-panel');
-
-            if (tab === 'manual') {
-                manualBtn.classList.add('active');
-                qrBtn.classList.remove('active');
-                manualPanel.style.display = 'block';
-                qrPanel.style.display = 'none';
-            } else {
-                qrBtn.classList.add('active');
-                manualBtn.classList.remove('active');
-                qrPanel.style.display = 'block';
-                manualPanel.style.display = 'none';
-                generateQR();
+        // Fetch Real-Time System Status
+        async function updateSystemStatus() {
+            try {
+                const res = await fetch('/api/system-status');
+                const data = await res.json();
+                if (data) {
+                    document.getElementById('connectedBots').textContent = data.connectedBots || 1;
+                    document.getElementById('activeSessions').textContent = data.activeSessions || 1;
+                    document.getElementById('systemStatus').textContent = data.status || 'ONLINE';
+                }
+            } catch (e) {
+                console.error('Failed to fetch system status:', e);
             }
         }
 
-        // Pairing Logic
+        // Poll every 3 seconds
+        setInterval(updateSystemStatus, 3000);
+        updateSystemStatus();
+
         async function getCode() {
-            const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
-            const submitBtn = document.getElementById('submitBtn');
-            const loader = document.getElementById('loader');
-            const btnText = document.getElementById('btn-text');
-            const resultBox = document.getElementById('result');
+            const number = document.getElementById('number').value.replace(/\D/g, '');
+            const btn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
             const codeBox = document.getElementById('codeBox');
 
+            error.classList.remove('show');
+            result.classList.remove('show');
+
             if (!number || number.length < 10) {
-                alert('Please enter a valid phone number with country code.');
+                error.textContent = '❌ Please enter a valid number with country code (e.g. 254746844168)';
+                error.classList.add('show');
                 return;
             }
 
-            submitBtn.disabled = true;
-            loader.style.display = 'inline-block';
-            btnText.innerText = 'Connecting...';
-            resultBox.style.display = 'none';
+            btn.disabled = true;
+            loading.classList.add('show');
 
             try {
-                const response = await fetch(`/code?number=${number}`);
-                const data = await response.json();
+                const res = await fetch('/code?number=' + encodeURIComponent(number));
+                const data = await res.json();
+                loading.classList.remove('show');
 
-                if (data.code) {
-                    codeBox.innerText = data.code;
-                    resultBox.style.display = 'block';
-                    btnText.innerText = '🔑 Generate Code';
+                if (data.code && data.code !== 'Service Unavailable') {
+                    codeBox.textContent = data.code;
+                    result.classList.add('show');
+                    updateSystemStatus();
                 } else {
-                    alert(data.error || 'Failed to generate code. Try again.');
-                    btnText.innerText = '🔑 Generate Code';
+                    error.textContent = '❌ ' + (data.error || 'Service temporarily unavailable. Please try again.');
+                    error.classList.add('show');
                 }
-            } catch (err) {
-                alert('Error connecting to server.');
-                btnText.innerText = '🔑 Generate Code';
+            } catch (e) {
+                loading.classList.remove('show');
+                error.textContent = '❌ Network error. Please try again.';
+                error.classList.add('show');
             } finally {
-                submitBtn.disabled = false;
-                loader.style.display = 'none';
+                btn.disabled = false;
             }
         }
 
-        function copyCode() {
-            const code = document.getElementById('codeBox').innerText;
-            navigator.clipboard.writeText(code);
-            alert('Code copied to clipboard!');
-        }
-
-        // QR Logic
-        async function generateQR() {
-            const qrContainer = document.getElementById('qr-container');
-            const qrLoading = document.getElementById('qr-loading');
-            const qrImage = document.getElementById('qr-image');
-
-            qrContainer.style.display = 'none';
-            qrLoading.style.display = 'block';
-
-            try {
-                // The /qr endpoint returns a buffer, so we can use it as src
-                qrImage.src = `/qr?t=${new Date().getTime()}`;
-                qrImage.onload = () => {
-                    qrLoading.style.display = 'none';
-                    qrContainer.style.display = 'flex';
-                };
-            } catch (err) {
-                console.error('QR Error:', err);
-            }
-        }
+        document.getElementById('number').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') getCode();
+        });
     </script>
 </body>
 </html>

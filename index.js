@@ -48,6 +48,40 @@ app.get('/status', (req, res) => {
   });
 });
 
+// System Status API for Real-Time Dashboard
+app.get('/api/system-status', async (req, res) => {
+  try {
+    let authCount = 0;
+    try {
+      const authFiles = await fs.readdir('./auth_info');
+      authCount = authFiles.filter(f => f !== '.gitkeep').length;
+    } catch (e) {}
+
+    let tempCount = 0;
+    try {
+      const tempFiles = await fs.readdir('./temp');
+      tempCount = tempFiles.filter(f => f !== '.gitkeep').length;
+    } catch (e) {}
+
+    const totalSessions = authCount + tempCount + 1;
+    const connectedBots = 1 + (authCount > 0 ? authCount : 0);
+
+    res.json({
+      connectedBots: connectedBots,
+      activeSessions: totalSessions,
+      uptime: Math.floor(process.uptime()),
+      status: 'ONLINE'
+    });
+  } catch (err) {
+    res.json({
+      connectedBots: 1,
+      activeSessions: 1,
+      uptime: Math.floor(process.uptime()),
+      status: 'ONLINE'
+    });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
