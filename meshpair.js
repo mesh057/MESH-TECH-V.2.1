@@ -21,6 +21,7 @@ const {
 const router = express.Router();
 const TEMP_ROOT = path.join(__dirname, 'temp');
 const PAIRING_TIMEOUT_MS = 120000;
+const PAIRING_REQUEST_TIMEOUT_MS = 20000;
 
 function removeFile(filePath) {
   try {
@@ -57,6 +58,14 @@ async function getVersion() {
   }
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 router.get('/', async (req, res) => {
   const number = normalizeNumber(req.query.number);
 
@@ -70,6 +79,7 @@ router.get('/', async (req, res) => {
   const authPath = path.join(TEMP_ROOT, id);
   let socket;
   let codeRequested = false;
+  let connectionClosed = false;
   let cleaned = false;
   let timeout;
 
@@ -133,57 +143,60 @@ router.get('/', async (req, res) => {
 
     socket.ev.on('creds.update', saveCreds);
 
-    // FIX 3: Request the pairing code OUTSIDE the connection.update event,
-    // immediately after the socket is created, with a sufficient delay to
-    // allow the WebSocket handshake to complete. Requesting it inside the
-    // 'connecting' event fires too early — before the WS is fully open —
-    // which causes a 428 "Connection Closed" / "Couldn't link device" error.
-    if (!state.creds.registered && !codeRequested) {
-      codeRequested = true;
-      updatePairingSession(id, { state: 'requesting_code' });
-
-      // FIX 4: Increase delay to 5 seconds (from 1 second). The socket needs
-      // enough time to complete the WhatsApp Web handshake before the pairing
-      // code can be requested. 1 second is too short on slower connections or
-      // cloud deployments; 5 seconds is the community-verified safe minimum.
+    const requestCode = async () => {
+      // Baileys emits `connecting` before its internal handshake is ready. A
+      // short delay from that event is the supported pairing-code pattern;
+      // probing socket.ws is unreliable because Baileys does not expose the
+      // underlying WebSocket consistently across versions.
       await delay(5000);
-
-      try {
-        if (!socket?.requestPairingCode) {
-          throw new Error('Socket is not ready or requestPairingCode is unavailable.');
-        }
-        const pairingCode = await socket.requestPairingCode(number);
-        if (!pairingCode || typeof pairingCode !== 'string') {
-          throw new Error(
-            `Invalid pairing code received: ${pairingCode}. WhatsApp may have rejected the request.`,
-          );
-        }
-        const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
-        updatePairingSession(id, { state: 'code_ready', code: formattedCode });
-
-        if (!res.headersSent) {
-          res.json({
-            code: formattedCode,
-            requestId: id,
-            expiresIn: Math.floor(PAIRING_TIMEOUT_MS / 1000),
-          });
-        }
-      } catch (pairingError) {
-        console.error('[PAIRING] requestPairingCode error:', pairingError.message);
-        const errorMsg = pairingError.message || 'Unknown pairing error';
-        updatePairingSession(id, { state: 'failed', error: errorMsg });
-        cleanup();
-        sendError(
-          502,
-          `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`,
-        );
+      if (connectionClosed) throw new Error('WhatsApp closed the connection before pairing started.');
+      if (!socket?.requestPairingCode) {
+        throw new Error('Socket is not ready or requestPairingCode is unavailable.');
       }
-    }
+      const pairingCode = await withTimeout(
+        socket.requestPairingCode(number),
+        PAIRING_REQUEST_TIMEOUT_MS,
+        'WhatsApp did not return a pairing code in time.',
+      );
+      if (!pairingCode || typeof pairingCode !== 'string') {
+        throw new Error(`Invalid pairing code received: ${pairingCode}.`);
+      }
+      const formattedCode = pairingCode.match(/.{1,4}/g)?.join('-') || pairingCode;
+      updatePairingSession(id, { state: 'code_ready', code: formattedCode });
+      if (!res.headersSent) {
+        res.json({
+          code: formattedCode,
+          requestId: id,
+          expiresIn: Math.floor(PAIRING_TIMEOUT_MS / 1000),
+        });
+      }
+    };
 
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
       try {
         if (connection === 'connecting') {
           updatePairingSession(id, { state: 'connecting' });
+          if (!state.creds.registered && !codeRequested) {
+            codeRequested = true;
+            updatePairingSession(id, { state: 'requesting_code' });
+            requestCode().catch((pairingError) => {
+              console.error('[PAIRING] requestPairingCode error:', pairingError.message);
+              const errorMsg = pairingError.message || 'Unknown pairing error';
+              updatePairingSession(id, { state: 'failed', error: errorMsg });
+              if (!res.headersSent) {
+                sendError(
+                  502,
+                  `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`,
+                );
+              }
+              try {
+                socket?.end?.(undefined);
+              } catch (closeError) {
+                console.error('[PAIRING] Failed to close pairing socket:', closeError.message);
+              }
+              cleanup();
+            });
+          }
         }
 
         if (connection === 'open') {
@@ -245,6 +258,7 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
             message = 'Connection closed before pairing completed. Please try again.';
           }
 
+          connectionClosed = true;
           updatePairingSession(id, { state: 'failed', error: message });
           cleanup();
           if (!res.headersSent) sendError(isRejected ? 400 : 502, message);
@@ -256,6 +270,7 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
         sendError(502, 'A pairing error occurred. Please try again.');
       }
     });
+
   } catch (error) {
     console.error('[PAIRING] Socket initialization failed:', error.message);
     updatePairingSession(id, { state: 'failed', error: error.message });
