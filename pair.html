@@ -1,574 +1,601 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MESH-TECH-V2 | Pairing Session</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Poppins:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #0a0e27, #1a1a3e, #16213e);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      padding: 20px;
-      overflow-x: hidden;
-      position: relative;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MESH-TECH-V2 | Pairing Session</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff00;
+            --dark-bg: #000000;
+            --border-glow: 0 0 8px rgba(0, 255, 0, 0.4);
+            --text-glow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
 
-    /* Animated background elements */
-    .bg-animation {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      overflow: hidden;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Mono', monospace;
+        }
 
-    .blob {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.1;
-      animation: float 15s infinite ease-in-out;
-    }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            min-height: 100vh;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
 
-    .blob-1 {
-      width: 300px;
-      height: 300px;
-      background: #00f260;
-      top: -50px;
-      left: -50px;
-      animation-delay: 0s;
-    }
+        /* Top Terminal Bar */
+        .terminal-header {
+            width: 100%;
+            max-width: 1000px;
+            border: 1px solid var(--neon-green);
+            padding: 5px 15px;
+            margin-bottom: 20px;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: var(--border-glow);
+        }
 
-    .blob-2 {
-      width: 250px;
-      height: 250px;
-      background: #0575e6;
-      bottom: -50px;
-      right: -50px;
-      animation-delay: 2s;
-    }
+        .terminal-header .left::before {
+            content: '[] "';
+        }
+        .terminal-header .left::after {
+            content: '"';
+        }
 
-    .blob-3 {
-      width: 200px;
-      height: 200px;
-      background: #ff006e;
-      top: 50%;
-      right: 10%;
-      animation-delay: 4s;
-    }
+        /* Main Header */
+        .main-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) translateX(0px); }
-      25% { transform: translateY(-30px) translateX(20px); }
-      50% { transform: translateY(-60px) translateX(-20px); }
-      75% { transform: translateY(-30px) translateX(20px); }
-    }
+        .bot-logo {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+        }
 
-    .container {
-      background: rgba(15, 12, 41, 0.7);
-      backdrop-filter: blur(30px);
-      border: 1px solid rgba(0, 242, 96, 0.2);
-      border-radius: 32px;
-      padding: 60px 48px;
-      max-width: 500px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 
-        0 0 60px rgba(0, 242, 96, 0.1),
-        inset 0 0 30px rgba(255, 255, 255, 0.05);
-      position: relative;
-      z-index: 1;
-      animation: slideIn 0.6s ease-out;
-    }
+        .bot-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-shadow: var(--text-glow);
+            margin-bottom: 5px;
+        }
 
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+        .bot-subtitle {
+            font-size: 12px;
+            letter-spacing: 2px;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
 
-    .logo-container {
-      position: relative;
-      margin-bottom: 32px;
-    }
+        .status-badge {
+            display: inline-block;
+            border: 1px solid var(--neon-green);
+            padding: 5px 15px;
+            font-size: 10px;
+            text-transform: uppercase;
+            box-shadow: var(--border-glow);
+        }
 
-    .logo-img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      border: 3px solid rgba(0, 242, 96, 0.4);
-      margin-bottom: 16px;
-      box-shadow: 
-        0 0 40px rgba(0, 242, 96, 0.3),
-        0 0 80px rgba(0, 242, 96, 0.1);
-      animation: pulse 3s ease-in-out infinite;
-    }
+        .status-badge::before {
+            content: '✓ ';
+        }
 
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 40px rgba(0, 242, 96, 0.3), 0 0 80px rgba(0, 242, 96, 0.1); }
-      50% { box-shadow: 0 0 60px rgba(0, 242, 96, 0.5), 0 0 120px rgba(0, 242, 96, 0.2); }
-    }
+        /* Tabs */
+        .tabs {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-    .logo {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 36px;
-      font-weight: 900;
-      background: linear-gradient(135deg, #00f260, #0575e6, #ff006e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-      letter-spacing: 2px;
-    }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
 
-    .subtitle {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 12px;
-      margin-bottom: 40px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
+        .tab-btn.active {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+            box-shadow: var(--border-glow);
+        }
 
-    .status-indicator {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #00f260;
-      margin-right: 8px;
-      animation: blink 2s ease-in-out infinite;
-    }
+        .tab-btn:hover:not(.active) {
+            background: rgba(0, 255, 0, 0.1);
+        }
 
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+        /* Main Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
 
-    .input-group {
-      margin-bottom: 28px;
-      text-align: left;
-    }
+        .panel {
+            border: 1px solid var(--neon-green);
+            padding: 20px;
+            box-shadow: var(--border-glow);
+            position: relative;
+        }
 
-    .input-group label {
-      display: block;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-weight: 600;
-    }
+        .panel-title {
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
 
-    .input-wrapper {
-      position: relative;
-    }
+        .panel-title::before {
+            content: '>_ ';
+            margin-right: 10px;
+        }
 
-    .input-group input {
-      width: 100%;
-      padding: 16px 20px;
-      border: 2px solid rgba(0, 242, 96, 0.2);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.03);
-      color: #fff;
-      font-size: 16px;
-      outline: none;
-      transition: all 0.3s ease;
-      font-family: 'Space Mono', monospace;
-      font-weight: 600;
-      letter-spacing: 1px;
-    }
+        /* Pairing Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-    .input-group input:focus {
-      border-color: #00f260;
-      background: rgba(0, 242, 96, 0.05);
-      box-shadow: 
-        0 0 0 4px rgba(0, 242, 96, 0.15),
-        inset 0 0 10px rgba(0, 242, 96, 0.05);
-    }
+        .form-label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
 
-    .input-group input::placeholder {
-      color: rgba(255, 255, 255, 0.2);
-    }
+        .form-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px;
+            font-size: 16px;
+            outline: none;
+        }
 
-    .btn {
-      width: 100%;
-      padding: 18px;
-      border: 2px solid transparent;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #00f260, #0575e6);
-      color: #000;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-top: 12px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      position: relative;
-      overflow: hidden;
-    }
+        .form-input::placeholder {
+            color: rgba(0, 255, 0, 0.3);
+        }
 
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.2);
-      transition: left 0.3s ease;
-    }
+        .submit-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
 
-    .btn:hover::before {
-      left: 100%;
-    }
+        .submit-btn:hover {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+        }
 
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 
-        0 15px 40px rgba(0, 242, 96, 0.4),
-        0 0 20px rgba(0, 242, 96, 0.2);
-    }
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+        /* Instructions Section */
+        .instructions-box {
+            margin-top: 25px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 15px;
+        }
 
-    .result {
-      margin-top: 32px;
-      padding: 28px;
-      background: linear-gradient(135deg, rgba(0, 242, 96, 0.1), rgba(5, 117, 230, 0.1));
-      border: 2px solid rgba(0, 242, 96, 0.3);
-      border-radius: 16px;
-      display: none;
-      animation: slideIn 0.4s ease-out;
-    }
+        .instructions-title {
+            font-size: 10px;
+            color: #ffaa00;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
 
-    .result.show { display: block; }
+        .instruction-item {
+            font-size: 10px;
+            margin-bottom: 5px;
+            display: block;
+        }
 
-    .result h3 {
-      color: #00f260;
-      font-size: 13px;
-      margin-bottom: 16px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-weight: 700;
-    }
+        .instruction-item::before {
+            content: '>> ';
+        }
 
-    .code-box {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 20px;
-      border-radius: 12px;
-      font-family: 'Space Mono', monospace;
-      font-size: 24px;
-      font-weight: 700;
-      color: #00f260;
-      letter-spacing: 6px;
-      word-break: break-all;
-      border: 1px solid rgba(0, 242, 96, 0.2);
-      text-shadow: 0 0 10px rgba(0, 242, 96, 0.3);
-      user-select: all;
-      cursor: copy;
-      transition: all 0.3s ease;
-    }
+        .expiry-warning {
+            font-size: 10px;
+            color: #ffaa00;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
 
-    .code-box:hover {
-      box-shadow: 0 0 20px rgba(0, 242, 96, 0.3);
-      border-color: rgba(0, 242, 96, 0.5);
-    }
+        /* System Status (Right Panel) */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
 
-    .copy-hint {
-      font-size: 11px;
-      color: rgba(0, 242, 96, 0.6);
-      margin-top: 8px;
-      font-weight: 600;
-    }
+        .status-card {
+            border: 1px solid var(--neon-green);
+            padding: 10px;
+            text-align: center;
+        }
 
-    .instructions {
-      margin-top: 20px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.8;
-      text-align: left;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 16px;
-      border-radius: 12px;
-      border-left: 3px solid #00f260;
-    }
+        .status-value {
+            font-size: 24px;
+            font-weight: 700;
+            display: block;
+        }
 
-    .instructions strong {
-      color: #00f260;
-      font-weight: 700;
-    }
+        .status-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
 
-    .footer {
-      margin-top: 40px;
-      padding-top: 28px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
+        .feature-list {
+            margin-bottom: 20px;
+        }
 
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
+        .list-header {
+            font-size: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
 
-    .footer a {
-      color: #00f260;
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      position: relative;
-    }
+        .list-header i {
+            margin-right: 8px;
+        }
 
-    .footer a::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background: #00f260;
-      transition: width 0.3s ease;
-    }
+        .list-item {
+            font-size: 9px;
+            margin-bottom: 4px;
+            display: block;
+            opacity: 0.8;
+        }
 
-    .footer a:hover::after {
-      width: 100%;
-    }
+        .list-item::before {
+            content: '> ';
+        }
 
-    .footer-text {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
-    }
+        /* QR Code Display */
+        #qr-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
 
-    .loading {
-      display: none;
-      margin-top: 28px;
-    }
+        #qr-image {
+            max-width: 250px;
+            border: 5px solid white;
+            margin-bottom: 20px;
+        }
 
-    .loading.show { display: block; }
+        /* Results Display */
+        .result-box {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
 
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top-color: #00f260;
-      border-right-color: #0575e6;
-      border-radius: 50%;
-      animation: spin 1.2s linear infinite;
-      margin: 0 auto 16px;
-    }
+        .code-display {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            padding: 20px;
+            border: 1px dashed var(--neon-green);
+            margin-bottom: 10px;
+            cursor: copy;
+        }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+        .copy-hint {
+            font-size: 9px;
+            opacity: 0.6;
+        }
 
-    .loading-text {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.6);
-      font-weight: 600;
-      letter-spacing: 1px;
-    }
+        /* Footer */
+        .terminal-footer {
+            width: 100%;
+            max-width: 1000px;
+            border-top: 1px solid rgba(0, 255, 0, 0.3);
+            margin-top: 40px;
+            padding-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 10px;
+            padding-bottom: 30px;
+        }
 
-    .error {
-      color: #ff4757;
-      font-size: 13px;
-      margin-top: 16px;
-      display: none;
-      padding: 14px;
-      background: rgba(255, 71, 87, 0.1);
-      border: 1px solid rgba(255, 71, 87, 0.3);
-      border-radius: 10px;
-      font-weight: 600;
-    }
+        .terminal-footer a {
+            color: var(--neon-green);
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
 
-    .error.show { display: block; }
+        .terminal-footer a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
 
-    .success-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      animation: bounce 0.6s ease-out;
-    }
+        /* Loading Spinner */
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--neon-green);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-    @keyframes bounce {
-      0% { transform: scale(0) rotate(-45deg); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-    @media (max-width: 480px) {
-      .container {
-        padding: 40px 28px;
-      }
-
-      .logo {
-        font-size: 28px;
-      }
-
-      .logo-img {
-        width: 80px;
-        height: 80px;
-      }
-
-      .code-box {
-        font-size: 18px;
-        letter-spacing: 4px;
-      }
-
-      .footer-links {
-        gap: 12px;
-      }
-    }
-
-    /* Glassmorphism effect */
-    .glass-effect {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-  </style>
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .terminal-header {
+                font-size: 8px;
+            }
+            .bot-name {
+                font-size: 22px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="bg-animation">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
-  </div>
-
-  <div class="container">
-    <div class="logo-container">
-      <img src="https://i.postimg.cc/vHZz7VWG/bot-logo.png" alt="MESH-TECH Logo" class="logo-img"/>
-      <div class="logo">MESH-TECH-V2</div>
-      <div class="subtitle"><span class="status-indicator"></span>PAIRING SESSION</div>
+    <div class="terminal-header">
+        <div class="left">SYSTEM [MESH-TECH PAIRING TERMINAL v2] PROTOCOL ...</div>
+        <div class="right" id="clock">00:00:00</div>
     </div>
 
-    <div class="input-group">
-      <label>📱 Enter Your WhatsApp Number</label>
-      <div class="input-wrapper">
-        <input type="text" id="number" placeholder="254746844168" maxlength="15" inputmode="numeric">
-      </div>
-    </div>
+    <header class="main-header">
+        <span class="bot-logo">🤖</span>
+        <h1 class="bot-name">MESH TECH</h1>
+        <div class="bot-subtitle">| WHATSAPP MULTI-DEVICE PAIRING TERMINAL |</div>
+        <div class="status-badge">System Online</div>
+    </header>
 
-    <button class="btn" id="submitBtn" onclick="getCode()">Generate Pairing Code</button>
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('manual')">📞 Manual</button>
+        <button class="tab-btn" onclick="switchTab('qr')">📷 QR Scan</button>
+    </nav>
 
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <p class="loading-text">Connecting to WhatsApp...</p>
-    </div>
+    <main class="dashboard-grid">
+        <!-- Left Panel: Interaction -->
+        <section class="panel" id="manual-panel">
+            <h2 class="panel-title">Pairing Protocol</h2>
+            
+            <div id="pairing-form">
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" id="number" class="form-input" placeholder="254746844168" maxlength="15">
+                </div>
+                
+                <button class="submit-btn" id="submitBtn" onclick="getCode()">
+                    <span id="btn-text">🔑 Generate Code</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </div>
 
-    <div class="error" id="error"></div>
+            <div class="result-box" id="result">
+                <div class="code-display" id="codeBox" onclick="copyCode()">--------</div>
+                <div class="copy-hint">Click code to copy to clipboard</div>
+            </div>
 
-    <div class="result" id="result">
-      <div class="success-icon">✅</div>
-      <h3>Pairing Code Generated</h3>
-      <div class="code-box" id="codeBox" title="Click to copy"></div>
-      <div class="copy-hint">💡 Click the code to copy it</div>
-      <div class="instructions">
-        <strong>📋 Next Steps:</strong><br>
-        1️⃣ Open <strong>WhatsApp</strong> on your phone<br>
-        2️⃣ Go to <strong>Settings → Linked Devices</strong><br>
-        3️⃣ Tap <strong>Link a Device</strong><br>
-        4️⃣ Enter the code above<br>
-        5️⃣ Wait for your <strong>Session ID</strong> to appear here
-      </div>
-    </div>
+            <div class="instructions-box">
+                <h3 class="instructions-title">[ Pairing Instructions ]</h3>
+                <span class="instruction-item">Open WhatsApp on your phone</span>
+                <span class="instruction-item">Navigate to Settings > Linked Devices > Link with Code</span>
+                <span class="instruction-item">Paste the code above and confirm</span>
+                <div class="expiry-warning">⚠ Code expires in 60 seconds</div>
+            </div>
+        </section>
 
-    <div class="footer">
-      <div class="footer-links">
-        <a href="/qr">🔲 QR Code</a>
-        <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">📢 Channel</a>
-        <a href="https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M" target="_blank">👥 Group</a>
-        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">⭐ GitHub</a>
-      </div>
-      <div class="footer-text">Made with ❤️ by Mesh | v2.0.0</div>
-    </div>
-  </div>
+        <!-- QR Panel (Hidden by default) -->
+        <section class="panel" id="qr-panel" style="display: none;">
+            <h2 class="panel-title">QR Protocol</h2>
+            <div id="qr-container">
+                <img id="qr-image" src="" alt="QR Code">
+                <p class="instruction-item">Scan this QR code with your WhatsApp</p>
+                <button class="submit-btn" style="margin-top: 20px;" onclick="generateQR()">
+                    🔄 Refresh QR
+                </button>
+            </div>
+            <div id="qr-loading" style="text-align: center; padding: 40px;">
+                <div class="loader" style="display: inline-block; width: 40px; height: 40px;"></div>
+                <p style="margin-top: 15px;">Initializing QR Session...</p>
+            </div>
+        </section>
 
-  <script>
-    const codeBox = document.getElementById('codeBox');
-    
-    // Copy to clipboard functionality
-    codeBox.addEventListener('click', function() {
-      const text = this.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const originalText = this.textContent;
-        this.textContent = '✓ Copied!';
-        setTimeout(() => {
-          this.textContent = originalText;
-        }, 2000);
-      });
-    });
+        <!-- Right Panel: System Info -->
+        <section class="panel">
+            <h2 class="panel-title">System Status</h2>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <span class="status-value">2</span>
+                    <span class="status-label">Active Bots</span>
+                </div>
+                <div class="status-card">
+                    <span class="status-value">2</span>
+                    <span class="status-label">Total Sessions</span>
+                </div>
+            </div>
 
-    async function getCode() {
-      const number = document.getElementById('number').value.replace(/\D/g, '');
-      const btn = document.getElementById('submitBtn');
-      const loading = document.getElementById('loading');
-      const result = document.getElementById('result');
-      const error = document.getElementById('error');
+            <div class="feature-list">
+                <h3 class="list-header">🛡 [ Core Features ]</h3>
+                <span class="list-item">500+ Commands Loaded</span>
+                <span class="list-item">Auto-Reconnect Enabled</span>
+                <span class="list-item">Multi-Session Support</span>
+                <span class="list-item">AI Chatbot Active</span>
+                <span class="list-item">Media Processing</span>
+                <span class="list-item">Group Management</span>
+                <span class="list-item">Image Enhancement (Remini)</span>
+                <span class="list-item">Pinterest Integration</span>
+            </div>
 
-      error.classList.remove('show');
-      result.classList.remove('show');
+            <div class="feature-list">
+                <h3 class="list-header">⌨ [ Command Prefix ]</h3>
+                <span class="list-item">. - Command Trigger</span>
+                <span class="list-item">.menu - Show All Commands</span>
+                <span class="list-item">.remini - Enhance Images</span>
+                <span class="list-item">.pinterest - Search Images</span>
+            </div>
 
-      if (!number || number.length < 10) {
-        error.textContent = '❌ Please enter a valid number with country code (e.g., 254746844168)';
-        error.classList.add('show');
-        return;
-      }
+            <div class="feature-list">
+                <h3 class="list-header">🛡 [ Security ]</h3>
+                <span class="list-item">Toxic-Baileys Library</span>
+                <span class="list-item">LID Mapping Support</span>
+                <span class="list-item">Encrypted Sessions</span>
+                <span class="list-item">Anti-Ban Protection</span>
+            </div>
+        </section>
+    </main>
 
-      btn.disabled = true;
-      loading.classList.add('show');
+    <footer class="terminal-footer">
+        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">MESH-TECH MD BOT v2.0 © 2026</a>
+        <span>|</span>
+        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">GITHUB</a>
+        <span>|</span>
+        <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">WHATSAPP</a>
+    </footer>
 
-      try {
-        const res = await fetch('/code?number=' + encodeURIComponent(number));
-        const data = await res.json();
-
-        loading.classList.remove('show');
-
-        if (data.code && data.code !== 'Service Unavailable') {
-          codeBox.textContent = data.code;
-          result.classList.add('show');
-        } else if (data.error) {
-          error.textContent = '❌ ' + data.error;
-          error.classList.add('show');
-        } else {
-          error.textContent = '❌ Service temporarily unavailable. Please try again.';
-          error.classList.add('show');
+    <script>
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                         now.getMinutes().toString().padStart(2, '0') + ':' + 
+                         now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('clock').innerText = time;
         }
-      } catch (e) {
-        loading.classList.remove('show');
-        error.textContent = '❌ Network error. Please check your connection and try again.';
-        error.classList.add('show');
-      } finally {
-        btn.disabled = false;
-      }
-    }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-    document.getElementById('number').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') getCode();
-    });
+        // Tab Switching
+        function switchTab(tab) {
+            const manualBtn = document.querySelectorAll('.tab-btn')[0];
+            const qrBtn = document.querySelectorAll('.tab-btn')[1];
+            const manualPanel = document.getElementById('manual-panel');
+            const qrPanel = document.getElementById('qr-panel');
 
-    // Auto-focus on input
-    document.getElementById('number').focus();
-  </script>
+            if (tab === 'manual') {
+                manualBtn.classList.add('active');
+                qrBtn.classList.remove('active');
+                manualPanel.style.display = 'block';
+                qrPanel.style.display = 'none';
+            } else {
+                qrBtn.classList.add('active');
+                manualBtn.classList.remove('active');
+                qrPanel.style.display = 'block';
+                manualPanel.style.display = 'none';
+                generateQR();
+            }
+        }
+
+        // Pairing Logic
+        async function getCode() {
+            const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btn-text');
+            const resultBox = document.getElementById('result');
+            const codeBox = document.getElementById('codeBox');
+
+            if (!number || number.length < 10) {
+                alert('Please enter a valid phone number with country code.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            loader.style.display = 'inline-block';
+            btnText.innerText = 'Connecting...';
+            resultBox.style.display = 'none';
+
+            try {
+                const response = await fetch(`/code?number=${number}`);
+                const data = await response.json();
+
+                if (data.code) {
+                    codeBox.innerText = data.code;
+                    resultBox.style.display = 'block';
+                    btnText.innerText = '🔑 Generate Code';
+                } else {
+                    alert(data.error || 'Failed to generate code. Try again.');
+                    btnText.innerText = '🔑 Generate Code';
+                }
+            } catch (err) {
+                alert('Error connecting to server.');
+                btnText.innerText = '🔑 Generate Code';
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeBox').innerText;
+            navigator.clipboard.writeText(code);
+            alert('Code copied to clipboard!');
+        }
+
+        // QR Logic
+        async function generateQR() {
+            const qrContainer = document.getElementById('qr-container');
+            const qrLoading = document.getElementById('qr-loading');
+            const qrImage = document.getElementById('qr-image');
+
+            qrContainer.style.display = 'none';
+            qrLoading.style.display = 'block';
+
+            try {
+                qrImage.src = `/qr?t=${new Date().getTime()}`;
+                qrImage.onload = () => {
+                    qrLoading.style.display = 'none';
+                    qrContainer.style.display = 'flex';
+                };
+            } catch (err) {
+                console.error('QR Error:', err);
+            }
+        }
+    </script>
 </body>
 </html>

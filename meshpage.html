@@ -1,492 +1,602 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MESH-TECH-V2 | Session Generator Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Poppins:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MESH-TECH-V2 | Pairing Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff00;
+            --dark-bg: #000000;
+            --border-glow: 0 0 8px rgba(0, 255, 0, 0.4);
+            --text-glow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #0a0e27, #1a1a3e, #16213e);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      padding: 20px;
-      overflow-x: hidden;
-      position: relative;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Mono', monospace;
+        }
 
-    /* Animated background */
-    .bg-animation {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      overflow: hidden;
-    }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            min-height: 100vh;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
 
-    .blob {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.08;
-      animation: float 20s infinite ease-in-out;
-    }
+        /* Top Terminal Bar */
+        .terminal-header {
+            width: 100%;
+            max-width: 1000px;
+            border: 1px solid var(--neon-green);
+            padding: 5px 15px;
+            margin-bottom: 20px;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: var(--border-glow);
+        }
 
-    .blob-1 {
-      width: 400px;
-      height: 400px;
-      background: #00f260;
-      top: -100px;
-      left: -100px;
-      animation-delay: 0s;
-    }
+        .terminal-header .left::before {
+            content: '[] "';
+        }
+        .terminal-header .left::after {
+            content: '"';
+        }
 
-    .blob-2 {
-      width: 350px;
-      height: 350px;
-      background: #0575e6;
-      bottom: -100px;
-      right: -100px;
-      animation-delay: 3s;
-    }
+        /* Main Header */
+        .main-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-    .blob-3 {
-      width: 300px;
-      height: 300px;
-      background: #ff006e;
-      top: 50%;
-      right: 5%;
-      animation-delay: 6s;
-    }
+        .bot-logo {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+        }
 
-    .blob-4 {
-      width: 250px;
-      height: 250px;
-      background: #00f260;
-      bottom: 20%;
-      left: 10%;
-      animation-delay: 9s;
-    }
+        .bot-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-shadow: var(--text-glow);
+            margin-bottom: 5px;
+        }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) translateX(0px); }
-      25% { transform: translateY(-40px) translateX(30px); }
-      50% { transform: translateY(-80px) translateX(-30px); }
-      75% { transform: translateY(-40px) translateX(30px); }
-    }
+        .bot-subtitle {
+            font-size: 12px;
+            letter-spacing: 2px;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
 
-    .container {
-      text-align: center;
-      max-width: 900px;
-      width: 100%;
-      position: relative;
-      z-index: 1;
-      animation: slideInDown 0.8s ease-out;
-    }
+        .status-badge {
+            display: inline-block;
+            border: 1px solid var(--neon-green);
+            padding: 5px 15px;
+            font-size: 10px;
+            text-transform: uppercase;
+            box-shadow: var(--border-glow);
+        }
 
-    @keyframes slideInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-40px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+        .status-badge::before {
+            content: '✓ ';
+        }
 
-    .header {
-      margin-bottom: 60px;
-    }
+        /* Tabs */
+        .tabs {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-    .logo-img {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      border: 4px solid rgba(0, 242, 96, 0.3);
-      margin-bottom: 24px;
-      box-shadow: 
-        0 0 60px rgba(0, 242, 96, 0.3),
-        0 0 120px rgba(0, 242, 96, 0.1);
-      animation: pulse 3s ease-in-out infinite;
-    }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
 
-    @keyframes pulse {
-      0%, 100% { 
-        box-shadow: 0 0 60px rgba(0, 242, 96, 0.3), 0 0 120px rgba(0, 242, 96, 0.1);
-        transform: scale(1);
-      }
-      50% { 
-        box-shadow: 0 0 80px rgba(0, 242, 96, 0.5), 0 0 160px rgba(0, 242, 96, 0.2);
-        transform: scale(1.05);
-      }
-    }
+        .tab-btn.active {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+            box-shadow: var(--border-glow);
+        }
 
-    .logo {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 56px;
-      font-weight: 900;
-      background: linear-gradient(135deg, #00f260, #0575e6, #ff006e, #00f260);
-      background-size: 300% 300%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 12px;
-      letter-spacing: 3px;
-      animation: gradientShift 8s ease infinite;
-    }
+        .tab-btn:hover:not(.active) {
+            background: rgba(0, 255, 0, 0.1);
+        }
 
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+        /* Main Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
 
-    .tagline {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 16px;
-      margin-bottom: 16px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
+        .panel {
+            border: 1px solid var(--neon-green);
+            padding: 20px;
+            box-shadow: var(--border-glow);
+            position: relative;
+        }
 
-    .status-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      background: rgba(0, 242, 96, 0.15);
-      border: 1px solid rgba(0, 242, 96, 0.3);
-      border-radius: 20px;
-      font-size: 12px;
-      color: #00f260;
-      font-weight: 700;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
-    }
+        .panel-title {
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
 
-    .status-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background: #00f260;
-      border-radius: 50%;
-      margin-right: 6px;
-      animation: blink 2s ease-in-out infinite;
-    }
+        .panel-title::before {
+            content: '>_ ';
+            margin-right: 10px;
+        }
 
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+        /* Pairing Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      margin-bottom: 60px;
-    }
+        .form-label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
 
-    .card {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(30px);
-      border: 2px solid rgba(0, 242, 96, 0.2);
-      border-radius: 24px;
-      padding: 48px 32px;
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      text-decoration: none;
-      color: #fff;
-      display: block;
-      position: relative;
-      overflow: hidden;
-      group: card;
-    }
+        .form-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px;
+            font-size: 16px;
+            outline: none;
+        }
 
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(0, 242, 96, 0.1), transparent);
-      transition: left 0.6s ease;
-    }
+        .form-input::placeholder {
+            color: rgba(0, 255, 0, 0.3);
+        }
 
-    .card:hover::before {
-      left: 100%;
-    }
+        .submit-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
 
-    .card:hover {
-      transform: translateY(-12px) scale(1.02);
-      border-color: rgba(0, 242, 96, 0.5);
-      box-shadow: 
-        0 30px 60px rgba(0, 242, 96, 0.2),
-        inset 0 0 30px rgba(0, 242, 96, 0.1);
-    }
+        .submit-btn:hover {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+        }
 
-    .card-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-      animation: float 3s ease-in-out infinite;
-    }
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    .card:nth-child(2) .card-icon {
-      animation-delay: 0.5s;
-    }
+        /* Instructions Section */
+        .instructions-box {
+            margin-top: 25px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 15px;
+        }
 
-    .card h3 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 24px;
-      margin-bottom: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
+        .instructions-title {
+            font-size: 10px;
+            color: #ffaa00;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
 
-    .card p {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
+        .instruction-item {
+            font-size: 10px;
+            margin-bottom: 5px;
+            display: block;
+        }
 
-    .card-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      background: rgba(0, 242, 96, 0.15);
-      border: 1px solid rgba(0, 242, 96, 0.3);
-      border-radius: 12px;
-      font-size: 11px;
-      color: #00f260;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
+        .instruction-item::before {
+            content: '>> ';
+        }
 
-    .features {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(30px);
-      border: 2px solid rgba(0, 242, 96, 0.2);
-      border-radius: 24px;
-      padding: 40px;
-      margin-bottom: 60px;
-    }
+        .expiry-warning {
+            font-size: 10px;
+            color: #ffaa00;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
 
-    .features h3 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 20px;
-      margin-bottom: 28px;
-      color: #00f260;
-      letter-spacing: 2px;
-    }
+        /* System Status (Right Panel) */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
 
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-    }
+        .status-card {
+            border: 1px solid var(--neon-green);
+            padding: 10px;
+            text-align: center;
+        }
 
-    .feature-item {
-      padding: 16px;
-      background: rgba(0, 242, 96, 0.05);
-      border: 1px solid rgba(0, 242, 96, 0.2);
-      border-radius: 12px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
-      transition: all 0.3s ease;
-    }
+        .status-value {
+            font-size: 24px;
+            font-weight: 700;
+            display: block;
+        }
 
-    .feature-item:hover {
-      background: rgba(0, 242, 96, 0.1);
-      border-color: rgba(0, 242, 96, 0.4);
-      transform: translateY(-4px);
-    }
+        .status-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
 
-    .feature-item strong {
-      color: #00f260;
-      font-weight: 700;
-    }
+        .feature-list {
+            margin-bottom: 20px;
+        }
 
-    .footer {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 13px;
-      padding-top: 40px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
+        .list-header {
+            font-size: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
 
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
+        .list-header i {
+            margin-right: 8px;
+        }
 
-    .footer a {
-      color: #00f260;
-      text-decoration: none;
-      font-weight: 700;
-      transition: all 0.3s ease;
-      position: relative;
-    }
+        .list-item {
+            font-size: 9px;
+            margin-bottom: 4px;
+            display: block;
+            opacity: 0.8;
+        }
 
-    .footer a::after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background: #00f260;
-      transition: width 0.3s ease;
-    }
+        .list-item::before {
+            content: '> ';
+        }
 
-    .footer a:hover::after {
-      width: 100%;
-    }
+        /* QR Code Display */
+        #qr-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
 
-    .footer-text {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
-    }
+        #qr-image {
+            max-width: 250px;
+            border: 5px solid white;
+            margin-bottom: 20px;
+        }
 
-    @media (max-width: 768px) {
-      .cards {
-        grid-template-columns: 1fr;
-        gap: 24px;
-      }
+        /* Results Display */
+        .result-box {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
 
-      .logo {
-        font-size: 40px;
-      }
+        .code-display {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            padding: 20px;
+            border: 1px dashed var(--neon-green);
+            margin-bottom: 10px;
+            cursor: copy;
+        }
 
-      .logo-img {
-        width: 100px;
-        height: 100px;
-      }
+        .copy-hint {
+            font-size: 9px;
+            opacity: 0.6;
+        }
 
-      .card {
-        padding: 36px 24px;
-      }
+        /* Footer */
+        .terminal-footer {
+            width: 100%;
+            max-width: 1000px;
+            border-top: 1px solid rgba(0, 255, 0, 0.3);
+            margin-top: 40px;
+            padding-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 10px;
+            padding-bottom: 30px;
+        }
 
-      .card-icon {
-        font-size: 48px;
-      }
+        .terminal-footer a {
+            color: var(--neon-green);
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
 
-      .feature-grid {
-        grid-template-columns: 1fr;
-      }
-    }
+        .terminal-footer a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
 
-    @media (max-width: 480px) {
-      .container {
-        padding: 0;
-      }
+        /* Loading Spinner */
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--neon-green);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-      .logo {
-        font-size: 32px;
-        letter-spacing: 1px;
-      }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-      .tagline {
-        font-size: 14px;
-      }
-
-      .card {
-        padding: 28px 20px;
-      }
-
-      .card h3 {
-        font-size: 20px;
-      }
-
-      .footer-links {
-        gap: 12px;
-        font-size: 12px;
-      }
-    }
-  </style>
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .terminal-header {
+                font-size: 8px;
+            }
+            .bot-name {
+                font-size: 22px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="bg-animation">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
-    <div class="blob blob-4"></div>
-  </div>
-
-  <div class="container">
-    <div class="header">
-      <img src="https://i.postimg.cc/vHZz7VWG/bot-logo.png" alt="MESH-TECH Logo" class="logo-img"/>
-      <div class="logo">MESH-TECH-V2</div>
-      <div class="tagline">🚀 WhatsApp Session Generator</div>
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        SYSTEM ONLINE
-      </div>
+    <div class="terminal-header">
+        <div class="left">SYSTEM [MESH-TECH PAIRING TERMINAL v2] PROTOCOL ...</div>
+        <div class="right" id="clock">00:00:00</div>
     </div>
 
-    <div class="cards">
-      <a href="/pair" class="card">
-        <div class="card-icon">🔢</div>
-        <h3>Pairing Code</h3>
-        <p>Enter your phone number to generate a secure pairing code. Link your device without scanning a QR code.</p>
-        <span class="card-badge">⚡ Fast & Secure</span>
-      </a>
-      <a href="/qr" class="card">
-        <div class="card-icon">📷</div>
-        <h3>QR Code</h3>
-        <p>Scan a QR code with your WhatsApp to instantly generate a session ID. Perfect for quick setup.</p>
-        <span class="card-badge">📱 Instant</span>
-      </a>
-    </div>
+    <header class="main-header">
+        <span class="bot-logo">🤖</span>
+        <h1 class="bot-name">MESH TECH</h1>
+        <div class="bot-subtitle">| WHATSAPP MULTI-DEVICE PAIRING TERMINAL |</div>
+        <div class="status-badge">System Online</div>
+    </header>
 
-    <div class="features">
-      <h3>✨ Key Features</h3>
-      <div class="feature-grid">
-        <div class="feature-item">
-          <strong>🔐 Secure</strong><br>
-          End-to-end encrypted sessions
-        </div>
-        <div class="feature-item">
-          <strong>⚡ Fast</strong><br>
-          Generate codes in seconds
-        </div>
-        <div class="feature-item">
-          <strong>📱 Multi-Device</strong><br>
-          Link multiple devices
-        </div>
-        <div class="feature-item">
-          <strong>🔄 Reliable</strong><br>
-          99.9% uptime guarantee
-        </div>
-        <div class="feature-item">
-          <strong>🎯 Easy Setup</strong><br>
-          Simple 3-step process
-        </div>
-        <div class="feature-item">
-          <strong>🚀 Advanced</strong><br>
-          Latest Baileys technology
-        </div>
-      </div>
-    </div>
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('manual')">📞 Manual</button>
+        <button class="tab-btn" onclick="switchTab('qr')">📷 QR Scan</button>
+    </nav>
 
-    <div class="footer">
-      <div class="footer-links">
-        <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">📢 Channel</a>
-        <a href="https://chat.whatsapp.com/DM1JxxnOJFp0vsTHpej89M" target="_blank">👥 Group</a>
-        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">⭐ GitHub</a>
-        <a href="https://github.com/mesh057/MESH-TECH-V2/wiki" target="_blank">📖 Docs</a>
-      </div>
-      <div class="footer-text">Made with ❤️ by Mesh | MESH-TECH-V2 v2.0.0</div>
-    </div>
-  </div>
+    <main class="dashboard-grid">
+        <!-- Left Panel: Interaction -->
+        <section class="panel" id="manual-panel">
+            <h2 class="panel-title">Pairing Protocol</h2>
+            
+            <div id="pairing-form">
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" id="number" class="form-input" placeholder="254746844168" maxlength="15">
+                </div>
+                
+                <button class="submit-btn" id="submitBtn" onclick="getCode()">
+                    <span id="btn-text">🔑 Generate Code</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </div>
+
+            <div class="result-box" id="result">
+                <div class="code-display" id="codeBox" onclick="copyCode()">--------</div>
+                <div class="copy-hint">Click code to copy to clipboard</div>
+            </div>
+
+            <div class="instructions-box">
+                <h3 class="instructions-title">[ Pairing Instructions ]</h3>
+                <span class="instruction-item">Open WhatsApp on your phone</span>
+                <span class="instruction-item">Navigate to Settings > Linked Devices > Link with Code</span>
+                <span class="instruction-item">Paste the code above and confirm</span>
+                <div class="expiry-warning">⚠ Code expires in 60 seconds</div>
+            </div>
+        </section>
+
+        <!-- QR Panel (Hidden by default) -->
+        <section class="panel" id="qr-panel" style="display: none;">
+            <h2 class="panel-title">QR Protocol</h2>
+            <div id="qr-container">
+                <img id="qr-image" src="" alt="QR Code">
+                <p class="instruction-item">Scan this QR code with your WhatsApp</p>
+                <button class="submit-btn" style="margin-top: 20px;" onclick="generateQR()">
+                    🔄 Refresh QR
+                </button>
+            </div>
+            <div id="qr-loading" style="text-align: center; padding: 40px;">
+                <div class="loader" style="display: inline-block; width: 40px; height: 40px;"></div>
+                <p style="margin-top: 15px;">Initializing QR Session...</p>
+            </div>
+        </section>
+
+        <!-- Right Panel: System Info -->
+        <section class="panel">
+            <h2 class="panel-title">System Status</h2>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <span class="status-value">2</span>
+                    <span class="status-label">Active Bots</span>
+                </div>
+                <div class="status-card">
+                    <span class="status-value">2</span>
+                    <span class="status-label">Total Sessions</span>
+                </div>
+            </div>
+
+            <div class="feature-list">
+                <h3 class="list-header">🛡 [ Core Features ]</h3>
+                <span class="list-item">500+ Commands Loaded</span>
+                <span class="list-item">Auto-Reconnect Enabled</span>
+                <span class="list-item">Multi-Session Support</span>
+                <span class="list-item">AI Chatbot Active</span>
+                <span class="list-item">Media Processing</span>
+                <span class="list-item">Group Management</span>
+                <span class="list-item">Image Enhancement (Remini)</span>
+                <span class="list-item">Pinterest Integration</span>
+            </div>
+
+            <div class="feature-list">
+                <h3 class="list-header">⌨ [ Command Prefix ]</h3>
+                <span class="list-item">. - Command Trigger</span>
+                <span class="list-item">.menu - Show All Commands</span>
+                <span class="list-item">.remini - Enhance Images</span>
+                <span class="list-item">.pinterest - Search Images</span>
+            </div>
+
+            <div class="feature-list">
+                <h3 class="list-header">🛡 [ Security ]</h3>
+                <span class="list-item">Toxic-Baileys Library</span>
+                <span class="list-item">LID Mapping Support</span>
+                <span class="list-item">Encrypted Sessions</span>
+                <span class="list-item">Anti-Ban Protection</span>
+            </div>
+        </section>
+    </main>
+
+    <footer class="terminal-footer">
+        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">MESH-TECH MD BOT v2.0 © 2026</a>
+        <span>|</span>
+        <a href="https://github.com/mesh057/MESH-TECH-V2" target="_blank">GITHUB</a>
+        <span>|</span>
+        <a href="https://whatsapp.com/channel/0029VbDeTrNEKyZ9GlUude2R" target="_blank">WHATSAPP</a>
+    </footer>
+
+    <script>
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                         now.getMinutes().toString().padStart(2, '0') + ':' + 
+                         now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('clock').innerText = time;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Tab Switching
+        function switchTab(tab) {
+            const manualBtn = document.querySelectorAll('.tab-btn')[0];
+            const qrBtn = document.querySelectorAll('.tab-btn')[1];
+            const manualPanel = document.getElementById('manual-panel');
+            const qrPanel = document.getElementById('qr-panel');
+
+            if (tab === 'manual') {
+                manualBtn.classList.add('active');
+                qrBtn.classList.remove('active');
+                manualPanel.style.display = 'block';
+                qrPanel.style.display = 'none';
+            } else {
+                qrBtn.classList.add('active');
+                manualBtn.classList.remove('active');
+                qrPanel.style.display = 'block';
+                manualPanel.style.display = 'none';
+                generateQR();
+            }
+        }
+
+        // Pairing Logic
+        async function getCode() {
+            const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btn-text');
+            const resultBox = document.getElementById('result');
+            const codeBox = document.getElementById('codeBox');
+
+            if (!number || number.length < 10) {
+                alert('Please enter a valid phone number with country code.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            loader.style.display = 'inline-block';
+            btnText.innerText = 'Connecting...';
+            resultBox.style.display = 'none';
+
+            try {
+                const response = await fetch(`/code?number=${number}`);
+                const data = await response.json();
+
+                if (data.code) {
+                    codeBox.innerText = data.code;
+                    resultBox.style.display = 'block';
+                    btnText.innerText = '🔑 Generate Code';
+                } else {
+                    alert(data.error || 'Failed to generate code. Try again.');
+                    btnText.innerText = '🔑 Generate Code';
+                }
+            } catch (err) {
+                alert('Error connecting to server.');
+                btnText.innerText = '🔑 Generate Code';
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeBox').innerText;
+            navigator.clipboard.writeText(code);
+            alert('Code copied to clipboard!');
+        }
+
+        // QR Logic
+        async function generateQR() {
+            const qrContainer = document.getElementById('qr-container');
+            const qrLoading = document.getElementById('qr-loading');
+            const qrImage = document.getElementById('qr-image');
+
+            qrContainer.style.display = 'none';
+            qrLoading.style.display = 'block';
+
+            try {
+                // The /qr endpoint returns a buffer, so we can use it as src
+                qrImage.src = `/qr?t=${new Date().getTime()}`;
+                qrImage.onload = () => {
+                    qrLoading.style.display = 'none';
+                    qrContainer.style.display = 'flex';
+                };
+            } catch (err) {
+                console.error('QR Error:', err);
+            }
+        }
+    </script>
 </body>
 </html>
