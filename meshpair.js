@@ -14,10 +14,13 @@ const {
 
 const router = express.Router();
 const TEMP_ROOT = path.join(__dirname, 'temp');
-const MAX_RECONNECTS = 2;
 
 function removeFile(filePath) {
-  fs.rmSync(filePath, { recursive: true, force: true });
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.rmSync(filePath, { recursive: true, force: true });
+    }
+  } catch (e) {}
 }
 
 function normalizeNumber(value) {
@@ -37,7 +40,7 @@ router.get('/', async (req, res) => {
 
   if (!isValidNumber(number)) {
     return res.status(400).json({
-      error: 'Invalid phone number. Use 10–15 digits including the country code.',
+      error: 'Invalid phone number. Use 10–15 digits including country code (e.g. 2547XXXXXXXX).',
     });
   }
 
@@ -45,7 +48,6 @@ router.get('/', async (req, res) => {
   const authPath = path.join(TEMP_ROOT, id);
   let socket;
   let codeRequested = false;
-  let reconnects = 0;
   let cleaned = false;
 
   const cleanup = () => {
@@ -61,60 +63,58 @@ router.get('/', async (req, res) => {
     }
   };
 
-  const connect = async () => {
-    try {
-      const { state, saveCreds } = await useMultiFileAuthState(authPath);
-      const logger = pino({ level: 'silent' });
-      const { version } = await fetchLatestBaileysVersion();
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    const logger = pino({ level: 'silent' });
+    const { version } = await fetchLatestBaileysVersion();
 
-      socket = makeWASocket({
-        auth: {
-          creds: state.creds,
-          keys: makeCacheableSignalKeyStore(
-            state.keys,
-            logger.child({ level: 'silent' }),
-          ),
-        },
-        logger,
-        version,
-        browser: Browsers.macOS('Desktop'),
-        markOnlineOnConnect: false,
-        syncFullHistory: false,
-        connectTimeoutMs: 60_000,
-        keepAliveIntervalMs: 25_000,
-      });
+    socket = makeWASocket({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger),
+      },
+      logger,
+      version,
+      browser: Browsers.macOS('Chrome'),
+      markOnlineOnConnect: false,
+      syncFullHistory: false,
+      connectTimeoutMs: 30_000,
+      keepAliveIntervalMs: 25_000,
+    });
 
-      socket.ev.on('creds.update', saveCreds);
-      socket.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
-        try {
-          // Baileys requires the socket to be ready. The qr event is the
-          // readiness trigger; requesting immediately after socket creation
-          // can fail with 428/401 and produce no pairing code.
-          if (qr && !state.creds.registered && !codeRequested) {
-            codeRequested = true;
-            await delay(3000);
-            const code = await socket.requestPairingCode(number);
+    socket.ev.on('creds.update', saveCreds);
+
+    socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
+      try {
+        // Request pairing code as soon as socket starts without waiting for QR event
+        if (!state.creds.registered && !codeRequested) {
+          codeRequested = true;
+          // Short delay for socket WS connection handshake
+          await delay(600);
+          try {
+            const pairingCode = await socket.requestPairingCode(number);
+            const formattedCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
             if (!res.headersSent) {
-              res.json({ code });
+              res.json({ code: formattedCode });
             }
+          } catch (pairErr) {
+            console.error('[PAIRING] requestPairingCode error:', pairErr.message);
+            cleanup();
+            sendError(502, 'Failed to generate pairing code from WhatsApp. Please check number or try again.');
           }
+        }
 
-          if (connection === 'open') {
-            await delay(2500);
-            const credsPath = path.join(authPath, 'creds.json');
-            if (!fs.existsSync(credsPath)) {
-              throw new Error('WhatsApp connected but credentials were not saved');
-            }
-
+        if (connection === 'open') {
+          await delay(1000);
+          const credsPath = path.join(authPath, 'creds.json');
+          if (fs.existsSync(credsPath)) {
             const sessionId = `Mesh~${fs.readFileSync(credsPath).toString('base64')}`;
-            const sessionMessage = await socket.sendMessage(socket.user.id, {
-              text: sessionId,
-            });
-
-            await socket.sendMessage(
-              socket.user.id,
-              {
-                text: `
+            try {
+              const sessionMessage = await socket.sendMessage(socket.user.id, { text: sessionId });
+              await socket.sendMessage(
+                socket.user.id,
+                {
+                  text: `
 ╔════════════════════════════════════════════╗
 ║  ✅ *MESH-TECH-V2 PAIR CODE CONNECTED*      ║
 ╚════════════════════════════════════════════╝
@@ -128,50 +128,39 @@ router.get('/', async (req, res) => {
 3️⃣ Deploy your bot and enjoy!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Repo: https://github.com/mesh057/MESH-TECH-V2
-                `.trim(),
-              },
-              { quoted: sessionMessage },
-            );
-
-            await delay(100);
-            socket.end?.(undefined);
-            cleanup();
-          }
-
-          if (connection === 'close') {
-            const statusCode = getStatusCode(lastDisconnect?.error);
-            if (statusCode === 401 || statusCode === 403) {
-              cleanup();
-              if (!res.headersSent) {
-                sendError(502, 'WhatsApp rejected the pairing request. Please try again.');
-              }
-              return;
-            }
-
-            if (!res.headersSent && reconnects < MAX_RECONNECTS) {
-              reconnects += 1;
-              codeRequested = false;
-              await delay(1500);
-              await connect();
-            } else if (!res.headersSent) {
-              cleanup();
-              sendError(502, 'WhatsApp disconnected before a pairing code was generated.');
+                  `.trim(),
+                },
+                { quoted: sessionMessage }
+              );
+            } catch (msgErr) {
+              console.error('[PAIRING] Failed to send session ID message to user:', msgErr.message);
             }
           }
-        } catch (error) {
-          console.error('[PAIRING] Connection update failed:', error.message);
+          await delay(500);
+          socket.end?.(undefined);
           cleanup();
-          sendError(getStatusCode(error) >= 400 ? getStatusCode(error) : 502, 'Unable to generate a pairing code. Please try again.');
         }
-      });
-    } catch (error) {
-      console.error('[PAIRING] Socket creation failed:', error.message);
-      cleanup();
-      sendError(502, 'Pairing service is temporarily unavailable. Please try again.');
-    }
-  };
 
-  await connect();
+        if (connection === 'close') {
+          const statusCode = getStatusCode(lastDisconnect?.error);
+          cleanup();
+          if ((statusCode === 401 || statusCode === 403) && !res.headersSent) {
+            sendError(400, 'WhatsApp rejected the pairing request or session expired. Please try again.');
+          } else if (!res.headersSent) {
+            sendError(502, 'Connection closed before pairing completion.');
+          }
+        }
+      } catch (error) {
+        console.error('[PAIRING] Connection update failed:', error.message);
+        cleanup();
+        sendError(502, 'Pairing error occurred. Please try again.');
+      }
+    });
+  } catch (error) {
+    console.error('[PAIRING] Socket initialization failed:', error.message);
+    cleanup();
+    sendError(502, 'Pairing service initialization failed.');
+  }
 });
 
 module.exports = router;
