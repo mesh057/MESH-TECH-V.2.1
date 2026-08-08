@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const pino = require('pino');
 const { makeid } = require('./id');
 const {
@@ -49,6 +50,23 @@ function removeFile(filePath) {
   } catch (error) {
     console.error('[PAIRING] Temporary session cleanup failed:', error.message);
   }
+}
+
+async function createAuthBundle(authPath) {
+  const files = {};
+  const walk = async (directory, prefix = '') => {
+    const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const absolute = path.join(directory, entry.name);
+      const relative = path.join(prefix, entry.name).split(path.sep).join('/');
+      if (entry.isDirectory()) await walk(absolute, relative);
+      else files[relative] = (await fs.promises.readFile(absolute)).toString('base64');
+    }
+  };
+  await walk(authPath);
+  if (!files['creds.json']) throw new Error('Pairing completed without creds.json');
+  const payload = JSON.stringify({ format: 'mesh-auth-v1', files });
+  return `Mesh2~${zlib.gzipSync(Buffer.from(payload)).toString('base64')}`;
 }
 
 async function getVersion() {
@@ -171,11 +189,13 @@ router.get('/', async (req, res) => {
         await delay(1000);
 
         try {
-          const credsPath = path.join(authPath, 'creds.json');
-          if (fs.existsSync(credsPath) && socket.user?.id) {
-            const sessionId = `Mesh~${fs.readFileSync(credsPath).toString('base64')}`;
+          if (socket.user?.id) {
+            // Transfer the complete Baileys multi-file auth state. A creds.json
+            // file alone is not sufficient for the bot to authenticate because
+            // the signal/pre-key files are also required.
+            const sessionId = await createAuthBundle(authPath);
             await socket.sendMessage(socket.user.id, { text: sessionId });
-            console.log(`[PAIRING] Session generated for ${number}`);
+            console.log(`[PAIRING] Full Mesh2 session generated for ${number}`);
           }
           updatePairingSession(id, { state: 'completed' });
           await delay(500);

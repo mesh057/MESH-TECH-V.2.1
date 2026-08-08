@@ -4,6 +4,7 @@ const { Boom } = require('@hapi/boom');
 const pino = require('pino');
 const fs = require('fs-extra');
 const path = require('path');
+const zlib = require('zlib');
 const figlet = require('figlet');
 const chalk = require('chalk');
 const express = require('express');
@@ -153,19 +154,39 @@ async function handleSessionId() {
     return;
   }
 
-  if (!sessionId.startsWith('Mesh~')) {
-    console.log(chalk.yellow('[SESSION] SESSION_ID does not start with Mesh~. Awaiting QR scan...'));
-    return;
-  }
-
   try {
-    const base64Creds = sessionId.slice(5);
-    const credsJson = JSON.parse(Buffer.from(base64Creds, 'base64').toString('utf-8'));
     await fs.ensureDir(authDir);
-    await fs.writeFile(credsPath, JSON.stringify(credsJson, null, 2));
-    console.log(chalk.green('[SESSION] Mesh~ session decoded and saved to auth_info/creds.json'));
+
+    if (sessionId.startsWith('Mesh2~')) {
+      const compressed = Buffer.from(sessionId.slice(6), 'base64');
+      const bundle = JSON.parse(zlib.gunzipSync(compressed).toString('utf8'));
+      if (bundle.format !== 'mesh-auth-v1' || !bundle.files || typeof bundle.files !== 'object') {
+        throw new Error('Invalid full-auth session bundle format');
+      }
+      await fs.emptyDir(authDir);
+      for (const [relativePath, encoded] of Object.entries(bundle.files)) {
+        const destination = path.resolve(authDir, relativePath);
+        if (destination !== authDir && !destination.startsWith(`${authDir}${path.sep}`)) {
+          throw new Error('Session bundle contains an unsafe file path');
+        }
+        await fs.ensureDir(path.dirname(destination));
+        await fs.writeFile(destination, Buffer.from(encoded, 'base64'));
+      }
+      if (!(await fs.pathExists(credsPath))) throw new Error('Full-auth bundle is missing creds.json');
+      console.log(chalk.green('[SESSION] Mesh2 full-auth bundle restored to auth_info/'));
+      return;
+    }
+
+    if (sessionId.startsWith('Mesh~')) {
+      const credsJson = JSON.parse(Buffer.from(sessionId.slice(5), 'base64').toString('utf-8'));
+      await fs.writeFile(credsPath, JSON.stringify(credsJson, null, 2));
+      console.log(chalk.yellow('[SESSION] Legacy Mesh~ credentials restored; full-auth Mesh2~ sessions are recommended.'));
+      return;
+    }
+
+    console.log(chalk.yellow('[SESSION] SESSION_ID has an unsupported prefix. Awaiting QR scan...'));
   } catch (error) {
-    console.error(chalk.red('[SESSION] Failed to decode Mesh~ session ID:'), error.message);
+    console.error(chalk.red('[SESSION] Failed to restore session:'), error.message);
     console.log(chalk.yellow('[SESSION] Continuing in QR mode...'));
   }
 }
