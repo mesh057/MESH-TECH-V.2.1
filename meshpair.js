@@ -80,6 +80,10 @@ router.get('/', async (req, res) => {
   let socket;
   let codeRequested = false;
   let connectionClosed = false;
+  let connectionStarted = false;
+  let primaryPairingFailed = false;
+  let fallbackScheduled = false;
+  let pairingAttemptInFlight = false;
   let cleaned = false;
   let timeout;
 
@@ -143,12 +147,14 @@ router.get('/', async (req, res) => {
 
     socket.ev.on('creds.update', saveCreds);
 
-    const requestCode = async () => {
-      // Baileys emits `connecting` before its internal handshake is ready. A
-      // short delay from that event is the supported pairing-code pattern;
-      // probing socket.ws is unreliable because Baileys does not expose the
-      // underlying WebSocket consistently across versions.
-      await delay(5000);
+    const requestCode = async (waitMs = 3000, strategy = 'source') => {
+      if (pairingAttemptInFlight) throw new Error('Another pairing attempt is already in progress.');
+      pairingAttemptInFlight = true;
+
+      // The source strategy initializes the socket, waits briefly, and then
+      // requests a code. The fallback passes the original connection-event
+      // strategy through this same function after its longer wait.
+      await delay(waitMs);
       if (connectionClosed) throw new Error('WhatsApp closed the connection before pairing started.');
       if (!socket?.requestPairingCode) {
         throw new Error('Socket is not ready or requestPairingCode is unavailable.');
@@ -158,11 +164,12 @@ router.get('/', async (req, res) => {
         PAIRING_REQUEST_TIMEOUT_MS,
         'WhatsApp did not return a pairing code in time.',
       );
+      pairingAttemptInFlight = false;
       if (!pairingCode || typeof pairingCode !== 'string') {
         throw new Error(`Invalid pairing code received: ${pairingCode}.`);
       }
       const formattedCode = pairingCode.match(/.{1,4}/g)?.join('-') || pairingCode;
-      updatePairingSession(id, { state: 'code_ready', code: formattedCode });
+      updatePairingSession(id, { state: 'code_ready', code: formattedCode, strategy });
       if (!res.headersSent) {
         res.json({
           code: formattedCode,
@@ -175,28 +182,9 @@ router.get('/', async (req, res) => {
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
       try {
         if (connection === 'connecting') {
+          connectionStarted = true;
           updatePairingSession(id, { state: 'connecting' });
-          if (!state.creds.registered && !codeRequested) {
-            codeRequested = true;
-            updatePairingSession(id, { state: 'requesting_code' });
-            requestCode().catch((pairingError) => {
-              console.error('[PAIRING] requestPairingCode error:', pairingError.message);
-              const errorMsg = pairingError.message || 'Unknown pairing error';
-              updatePairingSession(id, { state: 'failed', error: errorMsg });
-              if (!res.headersSent) {
-                sendError(
-                  502,
-                  `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`,
-                );
-              }
-              try {
-                socket?.end?.(undefined);
-              } catch (closeError) {
-                console.error('[PAIRING] Failed to close pairing socket:', closeError.message);
-              }
-              cleanup();
-            });
-          }
+          maybeRunLegacyFallback();
         }
 
         if (connection === 'open') {
@@ -270,6 +258,51 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
         sendError(502, 'A pairing error occurred. Please try again.');
       }
     });
+
+    const failPairing = (pairingError) => {
+      const errorMsg = pairingError.message || 'Unknown pairing error';
+      console.error('[PAIRING] requestPairingCode error:', errorMsg);
+      updatePairingSession(id, { state: 'failed', error: errorMsg });
+      if (!res.headersSent) {
+        sendError(
+          502,
+          `WhatsApp pairing failed: ${errorMsg}. Ensure the phone number is correct (e.g., 2547XXXXXXXX) and try again.`,
+        );
+      }
+      try {
+        socket?.end?.(undefined);
+      } catch (closeError) {
+        console.error('[PAIRING] Failed to close pairing socket:', closeError.message);
+      }
+      cleanup();
+    };
+
+    const runLegacyFallback = () => {
+      if (fallbackScheduled || connectionClosed || !primaryPairingFailed) return;
+      fallbackScheduled = true;
+      codeRequested = true;
+      updatePairingSession(id, { state: 'fallback_wait' });
+      // Preserve the previous implementation's delayed request path as the
+      // backup when the source-style attempt cannot obtain a code.
+      requestCode(5000, 'legacy-fallback').catch(failPairing);
+    };
+
+    const maybeRunLegacyFallback = () => {
+      if (primaryPairingFailed) runLegacyFallback();
+    };
+
+    if (!state.creds.registered && !codeRequested) {
+      codeRequested = true;
+      updatePairingSession(id, { state: 'requesting_code', strategy: 'source' });
+      requestCode(3000, 'source').catch((pairingError) => {
+        pairingAttemptInFlight = false;
+        primaryPairingFailed = true;
+        updatePairingSession(id, { state: 'primary_failed', error: pairingError.message });
+        // Start the preserved path even if the connecting event was missed;
+        // the fallback keeps the original longer wait before requesting code.
+        runLegacyFallback();
+      });
+    }
 
   } catch (error) {
     console.error('[PAIRING] Socket initialization failed:', error.message);
