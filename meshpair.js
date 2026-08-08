@@ -21,8 +21,9 @@ const {
 
 const router = express.Router();
 const TEMP_ROOT = path.join(__dirname, 'temp');
-const PAIRING_TIMEOUT_MS = 120000;
-const PAIRING_REQUEST_TIMEOUT_MS = 20000;
+const PAIRING_TIMEOUT_MS = 300000;
+const PAIRING_REQUEST_TIMEOUT_MS = 60000;
+const SOCKET_KEEPALIVE_MS = 25000;
 
 function normalizeNumber(value) {
   return String(value || '').replace(/\D/g, '');
@@ -94,6 +95,7 @@ router.get('/', async (req, res) => {
   let closed = false;
   let cleaned = false;
   let timeout;
+  let keepAliveTimer;
 
   registerPairingSession(id, {
     type: 'pairing',
@@ -105,6 +107,7 @@ router.get('/', async (req, res) => {
     if (cleaned) return;
     cleaned = true;
     clearTimeout(timeout);
+    clearInterval(keepAliveTimer);
     removePairingSession(id);
     removeFile(authPath);
   };
@@ -143,7 +146,19 @@ router.get('/', async (req, res) => {
       logger,
       browser: Browsers.ubuntu('Chrome'),
       markOnlineOnConnect: true,
+      keepAliveIntervalMs: SOCKET_KEEPALIVE_MS,
+      connectTimeoutMs: 90000,
+      defaultQueryTimeoutMs: undefined,
+      retryRequestDelayMs: 500,
+      syncFullHistory: false,
     });
+
+    // Baileys manages the WebSocket keep-alive internally. Keep this pairing
+    // session alive for the entire phone-linking window rather than allowing
+    // an idle handshake to be closed by a short default timeout.
+    keepAliveTimer = setInterval(() => {
+      updatePairingSession(id, { lastSeenAt: Date.now() });
+    }, SOCKET_KEEPALIVE_MS);
 
     if (!state.creds.registered) {
       updatePairingSession(id, { state: 'requesting_code' });
