@@ -122,9 +122,7 @@ router.get('/', async (req, res) => {
     const logger = pino({ level: 'silent' });
     const version = await getVersion();
 
-    // FIX 1: Use a specific browser string that WhatsApp accepts reliably.
-    // Browsers.ubuntu('Chrome') can produce a fingerprint that WhatsApp rejects
-    // with "Couldn't link device". Using an explicit array is more stable.
+
     socket = makeWASocket({
       auth: {
         creds: state.creds,
@@ -132,8 +130,11 @@ router.get('/', async (req, res) => {
       },
       logger,
       ...(version ? { version } : {}),
-      browser: ['Ubuntu', 'Chrome', '22.0.0'],
-      markOnlineOnConnect: false,
+      // Use Baileys' official Ubuntu/Chrome browser profile exactly as in
+      // MESH-TECH-MD-BOT. The explicit array fingerprint was being rejected
+      // by WhatsApp after displaying a code as “Couldn't link device”.
+      browser: Browsers.ubuntu('Chrome'),
+      markOnlineOnConnect: true,
       syncFullHistory: false,
       connectTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
@@ -178,6 +179,22 @@ router.get('/', async (req, res) => {
         });
       }
     };
+
+    // Start the reference-style request immediately after socket creation.
+    // The three-second delay inside requestCode gives the handshake time to
+    // initialize while preserving the reference request order.
+    if (!state.creds.registered && !codeRequested) {
+      codeRequested = true;
+      updatePairingSession(id, { state: 'requesting_code', strategy: 'source' });
+      requestCode(3000, 'source').catch((pairingError) => {
+        pairingAttemptInFlight = false;
+        primaryPairingFailed = true;
+        updatePairingSession(id, { state: 'primary_failed', error: pairingError.message });
+        // The fallback function is initialized before the three-second
+        // reference delay completes, so it is safe to invoke it here.
+        runLegacyFallback();
+      });
+    }
 
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
       try {
@@ -291,18 +308,6 @@ Repository: https://github.com/mesh057/MESH-TECH-V.2.1
       if (primaryPairingFailed) runLegacyFallback();
     };
 
-    if (!state.creds.registered && !codeRequested) {
-      codeRequested = true;
-      updatePairingSession(id, { state: 'requesting_code', strategy: 'source' });
-      requestCode(3000, 'source').catch((pairingError) => {
-        pairingAttemptInFlight = false;
-        primaryPairingFailed = true;
-        updatePairingSession(id, { state: 'primary_failed', error: pairingError.message });
-        // Start the preserved path even if the connecting event was missed;
-        // the fallback keeps the original longer wait before requesting code.
-        runLegacyFallback();
-      });
-    }
 
   } catch (error) {
     console.error('[PAIRING] Socket initialization failed:', error.message);
