@@ -8,10 +8,11 @@ const {
   default: makeWASocket,
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
+  fetchLatestBaileysVersion,
   Browsers,
   delay,
   DisconnectReason,
-} = require('@whiskeysockets/baileys');
+} = require('maher-zubair-baileys');
 const {
   registerPairingSession,
   updatePairingSession,
@@ -30,6 +31,16 @@ function normalizeNumber(value) {
 
 function isValidNumber(number) {
   return /^\d{10,15}$/.test(number);
+}
+
+async function getVersion() {
+  try {
+    const { version } = await fetchLatestBaileysVersion();
+    return version;
+  } catch (error) {
+    console.warn('[PAIRING] WhatsApp Web version lookup failed:', error.message);
+    return undefined;
+  }
 }
 
 function getStatusCode(error) {
@@ -120,18 +131,19 @@ router.get('/', async (req, res) => {
   try {
     await fs.promises.mkdir(TEMP_ROOT, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
-    const logger = pino({ level: 'fatal' });
+    const logger = pino({ level: 'silent' });
+    const version = await getVersion();
 
-    // Match the session-generator flow: use its Chrome/Linux device
-    // fingerprint and let Baileys negotiate its compatible Web version.
+    // Match the working MESH-TECH-MD-BOT pairing fingerprint exactly.
     socket = makeWASocket({
+      ...(version ? { version } : {}),
       auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
       printQRInTerminal: false,
       logger,
-      browser: ['Chrome (Linux)', '', ''],
+      browser: Browsers.ubuntu('Chrome'),
       markOnlineOnConnect: true,
       keepAliveIntervalMs: SOCKET_KEEPALIVE_MS,
       connectTimeoutMs: 90000,
@@ -212,6 +224,7 @@ router.get('/', async (req, res) => {
       if (connection === 'close' && !closed) {
         closed = true;
         const statusCode = getStatusCode(lastDisconnect?.error);
+        console.error('[PAIRING] WhatsApp disconnect:', JSON.stringify({ statusCode, error: lastDisconnect?.error?.message || String(lastDisconnect?.error || '') }));
         const message = statusCode === DisconnectReason.loggedOut
           ? 'WhatsApp logged out the temporary session. Please generate a new code.'
           : 'Connection closed before pairing completed. Please try again.';
