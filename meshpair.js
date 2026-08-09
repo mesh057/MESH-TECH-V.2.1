@@ -147,6 +147,23 @@ router.get('/', async (req, res) => {
       console.error('[PAIRING] WebSocket transport error:', error.message);
     });
 
+    // Observe the handshake before requesting the code. Some Baileys versions
+    // emit `close` before requestPairingCode rejects; handling it here prevents
+    // a dead socket from being reused and gives the route a deterministic error.
+    socket.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+      if (connection !== 'close' || closed) return;
+      closed = true;
+      const statusCode = getStatusCode(lastDisconnect?.error);
+      const message = statusCode === DisconnectReason.loggedOut
+        ? 'WhatsApp logged out the temporary session. Please generate a new code.'
+        : 'WhatsApp closed the pairing handshake before a code could be generated.';
+      console.error('[PAIRING] Early handshake close:', JSON.stringify({
+        statusCode,
+        error: lastDisconnect?.error?.message || String(lastDisconnect?.error || ''),
+      }));
+      fail(statusCode === DisconnectReason.loggedOut ? 400 : 502, message, lastDisconnect?.error);
+    });
+
     // Baileys manages the WebSocket keep-alive internally. Keep this pairing
     // session alive for the entire phone-linking window rather than allowing
     // an idle handshake to be closed by a short default timeout.
