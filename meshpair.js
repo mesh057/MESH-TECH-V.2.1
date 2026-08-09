@@ -8,7 +8,6 @@ const {
   default: makeWASocket,
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
-  fetchLatestBaileysVersion,
   Browsers,
   delay,
   DisconnectReason,
@@ -70,16 +69,6 @@ async function createAuthBundle(authPath) {
   return `Mesh2~${zlib.gzipSync(Buffer.from(payload)).toString('base64')}`;
 }
 
-async function getVersion() {
-  try {
-    const { version } = await fetchLatestBaileysVersion();
-    return version;
-  } catch (error) {
-    console.warn('[PAIRING] Could not fetch latest WhatsApp Web version:', error.message);
-    return undefined;
-  }
-}
-
 router.get('/', async (req, res) => {
   const number = normalizeNumber(req.query.number);
 
@@ -131,20 +120,18 @@ router.get('/', async (req, res) => {
   try {
     await fs.promises.mkdir(TEMP_ROOT, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
-    const logger = pino({ level: 'silent' });
-    const version = await getVersion();
+    const logger = pino({ level: 'fatal' });
 
-    // This is intentionally kept in the same order and shape as the working
-    // MESH-TECH-MD-BOT implementation.
+    // Match the session-generator flow: use its Chrome/Linux device
+    // fingerprint and let Baileys negotiate its compatible Web version.
     socket = makeWASocket({
-      ...(version ? { version } : {}),
       auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
       printQRInTerminal: false,
       logger,
-      browser: Browsers.ubuntu('Chrome'),
+      browser: ['Chrome (Linux)', '', ''],
       markOnlineOnConnect: true,
       keepAliveIntervalMs: SOCKET_KEEPALIVE_MS,
       connectTimeoutMs: 90000,
@@ -162,7 +149,7 @@ router.get('/', async (req, res) => {
 
     if (!state.creds.registered) {
       updatePairingSession(id, { state: 'requesting_code' });
-      await delay(3000);
+      await delay(1500);
 
       let pairingCode;
       try {
