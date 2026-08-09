@@ -221,20 +221,15 @@ router.get('/', async (req, res) => {
       }
 
       if (connection === 'open') {
-        updatePairingSession(id, { state: 'connected' });
-        await delay(1000);
-
-        try {
-          // Match MESH-TECH-MD-BOT: pairing is complete when the socket opens.
-          // No custom session string is generated or sent from this route.
-          updatePairingSession(id, { state: 'completed' });
-          await delay(500);
-          socket.end?.(undefined);
-          cleanup();
-        } catch (error) {
-          console.error('[PAIRING] Session delivery failed:', error.message);
-          fail(502, 'Pairing completed, but the session could not be delivered.', error);
-        }
+        // Do not close the socket here. WhatsApp can emit `open` before the
+        // phone-link confirmation and closing immediately causes “Couldn’t
+        // link device” even though the code was accepted. Keep this socket
+        // alive so creds.update can persist the complete auth state.
+        updatePairingSession(id, { state: 'completed' });
+        console.log('[PAIRING] WhatsApp socket opened; preserving it for auth persistence.');
+        clearTimeout(timeout);
+        clearInterval(keepAliveTimer);
+        removePairingSession(id);
       }
 
       if (connection === 'close' && !closed) {
