@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const zlib = require('zlib');
 const pino = require('pino');
 const { makeid } = require('./id');
 const {
@@ -12,7 +11,7 @@ const {
   Browsers,
   delay,
   DisconnectReason,
-} = require('maher-zubair-baileys');
+} = require('@whiskeysockets/baileys');
 const {
   registerPairingSession,
   updatePairingSession,
@@ -63,21 +62,10 @@ function removeFile(filePath) {
   }
 }
 
-async function createAuthBundle(authPath) {
-  const files = {};
-  const walk = async (directory, prefix = '') => {
-    const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      const absolute = path.join(directory, entry.name);
-      const relative = path.join(prefix, entry.name).split(path.sep).join('/');
-      if (entry.isDirectory()) await walk(absolute, relative);
-      else files[relative] = (await fs.promises.readFile(absolute)).toString('base64');
-    }
-  };
-  await walk(authPath);
-  if (!files['creds.json']) throw new Error('Pairing completed without creds.json');
-  const payload = JSON.stringify({ format: 'mesh-auth-v1', files });
-  return `Mesh2~${zlib.gzipSync(Buffer.from(payload)).toString('base64')}`;
+async function createLegacySession(authPath) {
+  const credsPath = path.join(authPath, 'creds.json');
+  if (!fs.existsSync(credsPath)) throw new Error('Pairing completed without creds.json');
+  return `Mesh~${(await fs.promises.readFile(credsPath)).toString('base64')}`;
 }
 
 router.get('/', async (req, res) => {
@@ -211,12 +199,15 @@ router.get('/', async (req, res) => {
 
         try {
           if (socket.user?.id) {
-            // Transfer the complete Baileys multi-file auth state. A creds.json
-            // file alone is not sufficient for the bot to authenticate because
-            // the signal/pre-key files are also required.
-            const sessionId = await createAuthBundle(authPath);
-            await socket.sendMessage(socket.user.id, { text: sessionId });
-            console.log(`[PAIRING] Full Mesh2 session generated for ${number}`);
+            // Use the repository-native session format, matching meshqr.js.
+            const sessionId = await createLegacySession(authPath);
+            const sessionMessage = await socket.sendMessage(socket.user.id, { text: sessionId });
+            await socket.sendMessage(
+              socket.user.id,
+              { text: 'MESH-TECH-V2 pairing completed. Copy the Mesh~ session above into SESSION_ID and restart the bot.' },
+              { quoted: sessionMessage },
+            );
+            console.log(`[PAIRING] Native Mesh~ session delivered for ${number}`);
           }
           updatePairingSession(id, { state: 'completed' });
           await delay(500);
