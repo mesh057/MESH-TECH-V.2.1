@@ -144,9 +144,11 @@ async function getBaileysVersion() {
   }
 }
 
+const AUTH_DIR = process.env.AUTH_DIR || path.join(__dirname, 'auth_info');
+
 async function handleSessionId() {
   const sessionId = config.SESSION_ID;
-  const authDir = path.join(__dirname, 'auth_info');
+  const authDir = AUTH_DIR;
   const credsPath = path.join(authDir, 'creds.json');
 
   if (!sessionId) {
@@ -205,17 +207,14 @@ async function startBot() {
     }
 
     await handleSessionId();
-    await fs.ensureDir(path.join(__dirname, 'auth_info'));
+    await fs.ensureDir(AUTH_DIR);
 
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth_info'));
+    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     const version = await getBaileysVersion();
     const socketOptions = {
       auth: state,
       logger: pino({ level: 'silent' }),
-      // FIX: Use a stable browser fingerprint. Browsers.macOS('Chrome') can
-      // cause WhatsApp to reject the session with "Couldn't link device".
-      // An explicit Ubuntu/Chrome string is the community-verified stable option.
-      browser: ['Ubuntu', 'Chrome', '22.0.0'],
+      browser: Browsers.ubuntu('Chrome'),
       markOnlineOnConnect: true,
       keepAliveIntervalMs: 30000,
       connectTimeoutMs: 60000,

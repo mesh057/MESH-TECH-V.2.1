@@ -19,7 +19,7 @@ const {
 } = require('./src/runtime/status');
 
 const router = express.Router();
-const TEMP_ROOT = path.join(__dirname, 'temp');
+const AUTH_DIR = process.env.AUTH_DIR || path.join(__dirname, 'auth_info');
 const PAIRING_TIMEOUT_MS = 300000;
 const PAIRING_REQUEST_TIMEOUT_MS = 60000;
 const SOCKET_KEEPALIVE_MS = 25000;
@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
   }
 
   const id = makeid();
-  const authPath = path.join(TEMP_ROOT, id);
+  const authPath = AUTH_DIR;
   let socket = null;
   let closed = false;
   let cleaned = false;
@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
     clearTimeout(timeout);
     clearInterval(keepAliveTimer);
     removePairingSession(id);
-    removeFile(authPath);
+    // Keep AUTH_DIR: the bot reuses this same Baileys auth state.
   };
 
   const fail = (status, message, error) => {
@@ -111,7 +111,7 @@ router.get('/', async (req, res) => {
   }, PAIRING_TIMEOUT_MS);
 
   try {
-    await fs.promises.mkdir(TEMP_ROOT, { recursive: true });
+    await fs.promises.mkdir(AUTH_DIR, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
     const logger = pino({ level: 'silent' });
     const version = await getVersion();
@@ -195,8 +195,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Match the reference: attach credential persistence after the pairing
-    // request has been issued, not before it.
+    // Persist all credential and signal-key updates in the shared auth_info directory.
     socket.ev.on('creds.update', saveCreds);
 
     socket.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
