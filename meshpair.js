@@ -13,6 +13,7 @@ const {
   DisconnectReason,
 } = require('@whiskeysockets/baileys');
 const {
+  runtime,
   registerPairingSession,
   updatePairingSession,
   removePairingSession,
@@ -72,6 +73,7 @@ router.get('/', async (req, res) => {
   }
 
   const id = makeid();
+  const forceReset = ['1', 'true', 'yes'].includes(String(req.query.reset || '').toLowerCase());
   const authPath = AUTH_DIR;
   let socket = null;
   let closed = false;
@@ -112,12 +114,22 @@ router.get('/', async (req, res) => {
 
   try {
     await fs.promises.mkdir(AUTH_DIR, { recursive: true });
-    const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    let authState = await useMultiFileAuthState(authPath);
 
-    if (state.creds.registered) {
-      return fail(409, 'This auth directory is already paired. Restart the bot instead of generating another code.');
+    if (authState.state.creds.registered) {
+      if (runtime.bot.state === 'connected') {
+        return fail(409, 'The bot is already connected. Use the bot instead of generating another pairing code.');
+      }
+      if (!forceReset) {
+        return fail(409, 'Saved credentials were found. Use the fresh-pairing action to reset stale credentials, then generate a new code.');
+      }
+      console.warn('[PAIRING] Resetting stale auth state for a fresh pairing request.');
+      await fs.promises.rm(AUTH_DIR, { recursive: true, force: true });
+      await fs.promises.mkdir(AUTH_DIR, { recursive: true });
+      authState = await useMultiFileAuthState(authPath);
     }
 
+    const { state, saveCreds } = authState;
     const logger = pino({ level: 'silent' });
     const version = await getVersion();
 

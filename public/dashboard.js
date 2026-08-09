@@ -190,10 +190,10 @@
     }
 
     setPairLoading(true);
-    addActivity('Requesting a secure pairing code from WhatsApp.');
+    addActivity('Requesting a fresh pairing code from WhatsApp.');
 
     try {
-      const response = await fetch(`/code?number=${encodeURIComponent(number)}`, {
+      const response = await fetch(`/code?number=${encodeURIComponent(number)}&reset=1`, {
         headers: { Accept: 'application/json' },
         cache: 'no-store',
       });
