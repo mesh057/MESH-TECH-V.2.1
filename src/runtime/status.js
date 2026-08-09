@@ -85,7 +85,8 @@ function getActivePairingCount() {
 }
 
 async function getStatusSnapshot() {
-  const persistentSessions = countAuthSessions(path.join(__dirname, '../../auth_info'));
+  const authDir = process.env.AUTH_DIR || path.join(__dirname, '../../auth_info');
+  const persistentSessions = countAuthSessions(authDir);
   const pendingPairings = getActivePairingCount();
   const botConnected = runtime.bot.state === 'connected';
 

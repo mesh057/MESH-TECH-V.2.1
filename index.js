@@ -159,6 +159,16 @@ async function handleSessionId() {
   try {
     await fs.ensureDir(authDir);
 
+    // Prefer the persistent multi-file auth state created by meshpair.js.
+    // A stale SESSION_ID must never overwrite a successfully paired account.
+    if (await fs.pathExists(credsPath)) {
+      const stats = await fs.stat(credsPath);
+      if (stats.size > 0) {
+        console.log(chalk.green('[SESSION] Existing persistent auth found; preserving it.'));
+        return;
+      }
+    }
+
     if (sessionId.startsWith('Mesh2~')) {
       const compressed = Buffer.from(sessionId.slice(6), 'base64');
       const bundle = JSON.parse(zlib.gunzipSync(compressed).toString('utf8'));
