@@ -5,7 +5,7 @@ module.exports = {
   SESSION_ID: process.env.SESSION_ID || '',
   MODE: process.env.MODE || 'public',
   OWNER_NUMBER: process.env.OWNER_NUMBER || '254746844168',
-  PREFIX: process.env.PREFIX || '!.',
+  PREFIX: process.env.PREFIX || '!',
   BOT_NAME: process.env.BOT_NAME || 'MESH-TECH-V2',
 
   // Timezone
