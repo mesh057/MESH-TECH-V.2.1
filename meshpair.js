@@ -152,6 +152,13 @@ router.get('/', async (req, res) => {
       syncFullHistory: false,
     });
 
+    // A transport error can occur while WhatsApp is still negotiating the
+    // pairing socket. Consume it explicitly so Railway does not terminate the
+    // whole Node process before connection.update reports the real reason.
+    socket.ws?.on?.('error', (error) => {
+      console.error('[PAIRING] WebSocket transport error:', error.message);
+    });
+
     // Baileys manages the WebSocket keep-alive internally. Keep this pairing
     // session alive for the entire phone-linking window rather than allowing
     // an idle handshake to be closed by a short default timeout.
