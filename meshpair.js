@@ -62,12 +62,6 @@ function removeFile(filePath) {
   }
 }
 
-async function createLegacySession(authPath) {
-  const credsPath = path.join(authPath, 'creds.json');
-  if (!fs.existsSync(credsPath)) throw new Error('Pairing completed without creds.json');
-  return `Mesh~${(await fs.promises.readFile(credsPath)).toString('base64')}`;
-}
-
 router.get('/', async (req, res) => {
   const number = normalizeNumber(req.query.number);
 
@@ -173,7 +167,7 @@ router.get('/', async (req, res) => {
 
     if (!state.creds.registered) {
       updatePairingSession(id, { state: 'requesting_code' });
-      await delay(1500);
+      await delay(3000);
 
       let pairingCode;
       try {
@@ -215,17 +209,8 @@ router.get('/', async (req, res) => {
         await delay(1000);
 
         try {
-          if (socket.user?.id) {
-            // Use the repository-native session format, matching meshqr.js.
-            const sessionId = await createLegacySession(authPath);
-            const sessionMessage = await socket.sendMessage(socket.user.id, { text: sessionId });
-            await socket.sendMessage(
-              socket.user.id,
-              { text: 'MESH-TECH-V2 pairing completed. Copy the Mesh~ session above into SESSION_ID and restart the bot.' },
-              { quoted: sessionMessage },
-            );
-            console.log(`[PAIRING] Native Mesh~ session delivered for ${number}`);
-          }
+          // Match MESH-TECH-MD-BOT: pairing is complete when the socket opens.
+          // No custom session string is generated or sent from this route.
           updatePairingSession(id, { state: 'completed' });
           await delay(500);
           socket.end?.(undefined);
