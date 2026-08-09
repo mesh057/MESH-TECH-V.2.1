@@ -220,6 +220,16 @@ async function startBot() {
     await fs.ensureDir(AUTH_DIR);
 
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+
+    // During first-time pairing, meshpair.js must be the only Baileys socket
+    // using AUTH_DIR. A second QR/socket connection can make WhatsApp reject
+    // the phone-link handshake. Restart the service after pairing completes.
+    if (!state.creds.registered && process.env.ALLOW_QR_BOOT !== 'true') {
+      touchBot({ state: 'pairing', error: null });
+      console.log(chalk.yellow('[PAIRING] No registered auth found; waiting for browser pairing.'));
+      return null;
+    }
+
     const version = await getBaileysVersion();
     const socketOptions = {
       auth: state,

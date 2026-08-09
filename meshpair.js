@@ -113,6 +113,11 @@ router.get('/', async (req, res) => {
   try {
     await fs.promises.mkdir(AUTH_DIR, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
+
+    if (state.creds.registered) {
+      return fail(409, 'This auth directory is already paired. Restart the bot instead of generating another code.');
+    }
+
     const logger = pino({ level: 'silent' });
     const version = await getVersion();
 
